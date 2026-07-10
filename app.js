@@ -69,6 +69,9 @@ const els = {
   customGroupName: document.getElementById("customGroupName"),
   customStayInfo: document.getElementById("customStayInfo"),
   customEntries: document.getElementById("customEntries"),
+  simpleCustomGroupName: document.getElementById("simpleCustomGroupName"),
+  simpleCustomStayInfo: document.getElementById("simpleCustomStayInfo"),
+  simpleCustomEntries: document.getElementById("simpleCustomEntries"),
   rangeStart: document.getElementById("rangeStart"),
   rangeEnd: document.getElementById("rangeEnd"),
   buildVersion: document.getElementById("buildVersion")
@@ -160,6 +163,7 @@ function init() {
   els.simpleExcelFile.addEventListener("change", handleFile);
   els.simpleSheetSelect.addEventListener("change", parseSelectedSheet);
   document.getElementById("loadCustom").addEventListener("click", loadCustomEntries);
+  document.getElementById("simpleLoadCustom").addEventListener("click", loadSimpleCustomEntries);
   document.getElementById("saveSettings").addEventListener("click", saveSettings);
   document.getElementById("resetSettings").addEventListener("click", resetSettings);
   document.getElementById("testPrint").addEventListener("click", () => openPrintWindow("test"));
@@ -488,6 +492,36 @@ function loadCustomEntries() {
     renderTable();
     syncRangeInputs(true);
     setStatus("有効な直接入力データがありません。", true);
+    return;
+  }
+
+  renderTable();
+  syncRangeInputs(true);
+  document.getElementById("simpleNextUpload").disabled = false;
+  const guestTotal = records.reduce((sum, record) => sum + record.outputNames.length, 0);
+  setStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+  setSimpleStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+}
+
+function loadSimpleCustomEntries() {
+  const text = els.simpleCustomEntries.value.trim();
+  if (!text) {
+    setSimpleStatus("直接入力欄に部屋番号と宿泊者名を入力してください。", true);
+    return;
+  }
+
+  const groupName = els.simpleCustomGroupName.value.trim();
+  const stayInfo = els.simpleCustomStayInfo.value.trim();
+  const parsed = parseCustomEntries(text, groupName, stayInfo);
+  records = parsed.valid;
+  warnings = parsed.warnings;
+  currentWorkbook = null;
+  populateSheetSelect(null);
+
+  if (!records.length) {
+    renderTable();
+    syncRangeInputs(true);
+    setSimpleStatus("有効な直接入力データがありません。", true);
     return;
   }
 

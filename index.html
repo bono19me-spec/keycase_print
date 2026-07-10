@@ -102,6 +102,21 @@
               <option value="">Excelファイルを選択してください</option>
             </select>
           </label>
+          
+          <details class="custom-entry">
+            <summary>Excelを使わずに直接入力</summary>
+            <div class="custom-grid">
+              <label>団体名<input id="simpleCustomGroupName" type="text" placeholder="任意"></label>
+              <label>宿泊情報<input id="simpleCustomStayInfo" type="text" placeholder="例: 7/7〜1泊"></label>
+            </div>
+            <label>部屋番号 / 宿泊者名
+              <textarea id="simpleCustomEntries" rows="5" placeholder="例:
+4082 イノウエ　トモオ/カワハラ　リッカ
+4083 カワカミ　ミコト"></textarea>
+            </label>
+            <button id="simpleLoadCustom" type="button" class="secondary icon-button"><svg class="button-icon"><use href="#icon-upload"></use></svg>直接入力を読み込む</button>
+          </details>
+          
           <div id="simpleStatus" class="status">Excelファイルを選択してください。</div>
           <div class="simple-nav">
             <button id="simpleNextUpload" type="button" class="icon-button" disabled>次へ<svg class="button-icon"><use href="#icon-arrow-right"></use></svg></button>
