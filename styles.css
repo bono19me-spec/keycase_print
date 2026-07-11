@@ -283,20 +283,36 @@ select {
   border-radius: 6px;
 }
 
-.fixed-option {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  min-height: 46px;
+.option-group {
+  display: grid;
+  gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #f9fafb;
 }
 
-.fixed-option span {
-  color: var(--accent);
+.option-group .checkbox-row {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sub-option {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sub-option.is-disabled {
+  opacity: 0.55;
+}
+
+.inline-error {
+  padding: 9px 11px;
+  border-radius: 6px;
+  background: #fff2e8;
+  color: #8a3f00;
   font-size: 13px;
   font-weight: 800;
 }

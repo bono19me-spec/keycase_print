@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS = {
   roomY: 88,
   roomAlign: "left",
   roomFontSize: 18,
+  printName: true,
+  printNameHonorific: true,
   printRoom: true,
   nameLineGap: 6,
   groupNameX: 98,
@@ -31,7 +33,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260709-rangelimit1";
+const BUILD_VERSION = "20260711-printfields1";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -86,6 +88,8 @@ const settingInputs = [
   "roomY",
   "nameFontSize",
   "roomFontSize",
+  "printName",
+  "printNameHonorific",
   "printRoom",
   "printGroupName",
   "printStayInfo",
@@ -123,6 +127,7 @@ function init() {
   document.getElementById("simplePrevInfo").addEventListener("click", () => showSimpleStep(1));
   document.getElementById("simpleNextInfo").addEventListener("click", () => {
     updateSettingsFromSimpleForm();
+    if (!validateRequiredPrintField()) return;
     bindSettingsToForm();
     showSimpleStep(3);
   });
@@ -135,12 +140,15 @@ function init() {
       updateSettingsFromForm();
       bindSimpleSettingsToForm();
       bindSimplePositionSettingsToForm();
+      renderTable();
     });
   });
-  ["simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo"].forEach((id) => {
+  ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
       bindSettingsToForm();
+      updatePrintFieldControls();
+      renderTable();
     });
   });
   document.querySelectorAll('input[name="simpleCopyMode"], input[name="advancedCopyMode"]').forEach((input) => {
@@ -177,6 +185,7 @@ function init() {
     input.addEventListener("change", () => syncRangeInputs(false, input));
   });
   syncRangeInputs(true);
+  updatePrintFieldControls();
 }
 
 function showMode(mode) {
@@ -216,13 +225,17 @@ function bindSettingsToForm() {
       input.value = settings[key];
     }
   });
+  updatePrintFieldControls();
 }
 
 function bindSimpleSettingsToForm() {
+  document.getElementById("simplePrintName").checked = Boolean(settings.printName);
+  document.getElementById("simplePrintNameHonorific").checked = Boolean(settings.printNameHonorific);
   document.getElementById("simplePrintRoom").checked = Boolean(settings.printRoom);
   document.getElementById("simplePrintGroupName").checked = Boolean(settings.printGroupName);
   document.getElementById("simplePrintStayInfo").checked = Boolean(settings.printStayInfo);
   bindCopyModeToForm();
+  updatePrintFieldControls();
 }
 
 function bindSimplePositionSettingsToForm() {
@@ -337,14 +350,40 @@ function updateSettingsFromForm() {
   });
   const selected = document.querySelector('input[name="advancedCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
+  updatePrintFieldControls();
 }
 
 function updateSettingsFromSimpleForm() {
+  settings.printName = document.getElementById("simplePrintName").checked;
+  settings.printNameHonorific = document.getElementById("simplePrintNameHonorific").checked;
   settings.printRoom = document.getElementById("simplePrintRoom").checked;
   settings.printGroupName = document.getElementById("simplePrintGroupName").checked;
   settings.printStayInfo = document.getElementById("simplePrintStayInfo").checked;
   const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
+  updatePrintFieldControls();
+}
+
+function hasRequiredPrintField() {
+  return Boolean(settings.printName || settings.printRoom);
+}
+
+function updatePrintFieldControls() {
+  const simpleHonorific = document.getElementById("simplePrintNameHonorific");
+  const advancedHonorific = document.getElementById("printNameHonorific");
+  const simpleError = document.getElementById("simplePrintFieldError");
+  const advancedError = document.getElementById("advancedPrintFieldError");
+  const simpleNext = document.getElementById("simpleNextInfo");
+  const isValid = hasRequiredPrintField();
+
+  [simpleHonorific, advancedHonorific].forEach((input) => {
+    if (!input) return;
+    input.disabled = !settings.printName;
+    input.closest(".checkbox-row")?.classList.toggle("is-disabled", !settings.printName);
+  });
+  if (simpleError) simpleError.hidden = isValid;
+  if (advancedError) advancedError.hidden = isValid;
+  if (simpleNext) simpleNext.disabled = !isValid;
 }
 
 function updateSettingsFromSimplePositionForm() {
@@ -352,6 +391,16 @@ function updateSettingsFromSimplePositionForm() {
     const input = document.getElementById(id);
     settings[key] = input.type === "checkbox" ? input.checked : Number(input.value);
   });
+}
+
+function validateRequiredPrintField() {
+  updatePrintFieldControls();
+  if (hasRequiredPrintField()) return true;
+
+  const message = "氏名または部屋番号を少なくとも1つ選択してください。";
+  setStatus(message, true);
+  setSimpleStatus(message, true);
+  return false;
 }
 
 function saveSettings() {
@@ -553,7 +602,7 @@ function parseCustomEntries(text, groupName, stayInfo) {
     }
 
     const rawNames = parsed.names;
-    const outputNames = rawNames.map(formatGuestName);
+    const outputNames = rawNames.map(normalizeGuestName);
     valid.push({
       index: valid.length + 1,
       excelRow: `入力${lineIndex + 1}`,
@@ -637,7 +686,7 @@ function extractRecords(sheet) {
 
     if (!room && rawName && currentRecord) {
       currentRecord.rawNames.push(rawName);
-      currentRecord.outputNames.push(formatGuestName(rawName));
+      currentRecord.outputNames.push(normalizeGuestName(rawName));
       currentRecord.rawName = currentRecord.rawNames.join(" / ");
       currentRecord.outputName = currentRecord.outputNames.join(" / ");
       continue;
@@ -658,9 +707,9 @@ function extractRecords(sheet) {
       excelRow: row + 1,
       room,
       rawNames: [rawName],
-      outputNames: [formatGuestName(rawName)],
+      outputNames: [normalizeGuestName(rawName)],
       rawName,
-      outputName: formatGuestName(rawName),
+      outputName: normalizeGuestName(rawName),
       guestCount: 1,
       groupName,
       stayInfo: formatStayInfo(arrivalCell, nights)
@@ -690,9 +739,15 @@ function normalizeRoom(cell) {
   return normalized.replace(/\.0$/, "");
 }
 
-function formatGuestName(name) {
+function normalizeGuestName(name) {
   const trimmed = String(name || "").trim();
-  return trimmed.endsWith("様") ? trimmed : `${trimmed} 様`;
+  return trimmed.replace(/\s*様$/, "");
+}
+
+function formatGuestNameForPrint(name) {
+  const normalized = normalizeGuestName(name);
+  if (!settings.printNameHonorific) return normalized;
+  return normalized.endsWith("様") ? normalized : `${normalized} 様`;
 }
 
 function formatStayInfo(arrivalCell, nights) {
@@ -733,7 +788,7 @@ function renderTable() {
       <td>${escapeHtml(record.rawName)}</td>
       <td>${record.outputNames.length}</td>
       <td>${escapeHtml(record.stayInfo)}</td>
-      <td>${escapeHtml(record.outputName)}</td>
+      <td>${escapeHtml(getPrintableNames(record).join(" / "))}</td>
       <td>使用</td>
     </tr>
   `);
@@ -791,6 +846,7 @@ function openPrintWindow(mode) {
     updateSettingsFromSimplePositionForm();
     bindSettingsToForm();
   }
+  if (!validateRequiredPrintField()) return;
 
   const selected = getRecordsForMode(mode);
   if (!selected.length) return;
@@ -958,6 +1014,7 @@ function buildPrintHtml(selected) {
 }
 
 function buildPrintPage(record) {
+  const printableNames = getPrintableNames(record);
   const nameLayout = getNameLayout(record);
   const groupName = settings.printGroupName && record.groupName
     ? `<p class="group-name">${escapeHtml(record.groupName)}</p>`
@@ -965,7 +1022,7 @@ function buildPrintPage(record) {
   const stayInfo = settings.printStayInfo && record.stayInfo
     ? `<p class="stay-info" style="top:${printY(nameLayout.stayInfoY)}mm;">${escapeHtml(record.stayInfo)}</p>`
     : "";
-  const names = record.outputNames.map((name, index) => (
+  const names = printableNames.map((name, index) => (
     `<p class="name" style="left:${printX(settings.nameX)}mm; top:${printY(nameLayout.firstNameY + nameLayout.lineGap * index)}mm; font-size:${nameLayout.fontSize}pt;">${escapeHtml(name)}</p>`
   )).join("");
   const room = settings.printRoom
@@ -982,8 +1039,9 @@ function buildPrintPage(record) {
 }
 
 function getNameLayout(record) {
-  const count = Math.max(1, record.outputNames.length);
-  const fontSize = getAutoNameFontSize(record.outputNames);
+  const names = getPrintableNames(record);
+  const count = Math.max(1, names.length);
+  const fontSize = getAutoNameFontSize(names);
   const fontHeightMm = fontSize * PT_TO_MM;
   const lineGap = roundToTenth(Math.max(settings.nameLineGap, fontHeightMm * 1.35));
   const extraLines = Math.max(0, count - 2);
@@ -1001,6 +1059,11 @@ function getNameLayout(record) {
     firstNameY: Number(settings.nameY) - upwardShift,
     stayInfoY: Number(settings.stayInfoY) - upwardShift
   };
+}
+
+function getPrintableNames(record) {
+  if (!settings.printName) return [];
+  return record.outputNames.map(formatGuestNameForPrint);
 }
 
 function getAutoNameFontSize(names) {
