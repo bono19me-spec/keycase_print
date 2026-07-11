@@ -105,11 +105,19 @@
           
           <details class="custom-entry">
             <summary>Excelを使わずに直接入力</summary>
+            <div class="custom-print-options">
+              <div class="option-pair">
+                <label class="checkbox-row option-main"><input id="simpleCustomPrintName" type="checkbox" checked><span>氏名</span></label>
+                <label class="checkbox-row sub-option honorific-option"><input id="simpleCustomPrintNameHonorific" type="checkbox" checked><span>様</span></label>
+              </div>
+              <label class="checkbox-row option-main"><input id="simpleCustomPrintRoom" type="checkbox" checked><span>部屋番号</span></label>
+              <div id="simpleCustomFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
+            </div>
             <div class="custom-grid">
               <label>団体名<input id="simpleCustomGroupName" type="text" placeholder="任意"></label>
               <label>宿泊情報<input id="simpleCustomStayInfo" type="text" placeholder="例: 7/7〜1泊"></label>
             </div>
-            <label>部屋番号 / 宿泊者名
+            <label><span id="simpleCustomEntriesLabel">部屋番号 / 氏名</span>
               <textarea id="simpleCustomEntries" rows="5" placeholder="例:
 4082 イノウエ　トモオ/カワハラ　リッカ
 4083 カワカミ　ミコト"></textarea>
@@ -128,13 +136,13 @@
           <h2><svg class="heading-icon"><use href="#icon-user"></use></svg>印刷情報を選択</h2>
           <p class="muted">氏名と部屋番号は基本チェック状態です。どちらか一方は必ず選択してください。必要に応じて団体名、宿泊情報も追加できます。</p>
           <div class="simple-options">
-            <div class="option-group">
-              <label class="checkbox-row"><input id="simplePrintName" type="checkbox" checked>氏名を印刷</label>
-              <label class="checkbox-row sub-option"><input id="simplePrintNameHonorific" type="checkbox" checked>氏名に「様」を付ける</label>
+            <div class="option-pair">
+              <label class="checkbox-row option-main"><input id="simplePrintName" type="checkbox" checked><span>氏名</span></label>
+              <label class="checkbox-row sub-option honorific-option"><input id="simplePrintNameHonorific" type="checkbox" checked><span>様</span></label>
             </div>
-            <label class="checkbox-row"><input id="simplePrintRoom" type="checkbox" checked>部屋番号を印刷</label>
-            <label class="checkbox-row"><input id="simplePrintGroupName" type="checkbox">団体名を印刷</label>
-            <label class="checkbox-row"><input id="simplePrintStayInfo" type="checkbox">宿泊情報を印刷</label>
+            <label class="checkbox-row option-main"><input id="simplePrintRoom" type="checkbox" checked><span>部屋番号</span></label>
+            <label class="checkbox-row option-main"><input id="simplePrintGroupName" type="checkbox"><span>団体名</span></label>
+            <label class="checkbox-row option-main"><input id="simplePrintStayInfo" type="checkbox"><span>宿泊情報</span></label>
             <div id="simplePrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
             <div id="simpleCopyModePanel" class="copy-mode-panel" hidden>
               <strong>2名以上の部屋の印刷枚数</strong>
@@ -228,11 +236,19 @@
 
           <details class="custom-entry">
             <summary>Excelを使わずに直接入力</summary>
+            <div class="custom-print-options">
+              <div class="option-pair">
+                <label class="checkbox-row option-main"><input id="customPrintName" type="checkbox" checked><span>氏名</span></label>
+                <label class="checkbox-row sub-option honorific-option"><input id="customPrintNameHonorific" type="checkbox" checked><span>様</span></label>
+              </div>
+              <label class="checkbox-row option-main"><input id="customPrintRoom" type="checkbox" checked><span>部屋番号</span></label>
+              <div id="customFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
+            </div>
             <div class="custom-grid">
               <label>団体名<input id="customGroupName" type="text" placeholder="任意"></label>
               <label>宿泊情報<input id="customStayInfo" type="text" placeholder="例: 7/7〜1泊"></label>
             </div>
-            <label>部屋番号 / 宿泊者名
+            <label><span id="customEntriesLabel">部屋番号 / 氏名</span>
               <textarea id="customEntries" rows="5" placeholder="例:
 4082 イノウエ　トモオ/カワハラ　リッカ
 4083 カワカミ　ミコト"></textarea>
@@ -267,11 +283,13 @@
             <label>部屋番号Y(mm)<input id="roomY" type="number" step="0.1"></label>
             <label>氏名サイズ(pt)<input id="nameFontSize" type="number" step="0.5" min="6"></label>
             <label>部屋番号サイズ(pt)<input id="roomFontSize" type="number" step="0.5" min="6"></label>
-            <label class="checkbox-row"><input id="printName" type="checkbox" checked>氏名を印刷</label>
-            <label class="checkbox-row sub-option"><input id="printNameHonorific" type="checkbox" checked>氏名に「様」を付ける</label>
-            <label class="checkbox-row"><input id="printRoom" type="checkbox" checked>部屋番号を印刷</label>
-            <label class="checkbox-row"><input id="printGroupName" type="checkbox">団体名を印刷</label>
-            <label class="checkbox-row"><input id="printStayInfo" type="checkbox">宿泊情報を印刷</label>
+            <div class="option-pair control-option-pair">
+              <label class="checkbox-row option-main"><input id="printName" type="checkbox" checked><span>氏名</span></label>
+              <label class="checkbox-row sub-option honorific-option"><input id="printNameHonorific" type="checkbox" checked><span>様</span></label>
+            </div>
+            <label class="checkbox-row option-main"><input id="printRoom" type="checkbox" checked><span>部屋番号</span></label>
+            <label class="checkbox-row option-main"><input id="printGroupName" type="checkbox"><span>団体名</span></label>
+            <label class="checkbox-row option-main"><input id="printStayInfo" type="checkbox"><span>宿泊情報</span></label>
             <label class="checkbox-row"><input id="rotate180" type="checkbox">180度回転</label>
           </div>
           <div id="advancedPrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
@@ -333,6 +351,6 @@
     </main>
 
     <script src="vendor/xlsx.full.min.js"></script>
-    <script src="app.js?v=20260711-printfields1"></script>
+    <script src="app.js?v=20260712-customfields1"></script>
   </body>
 </html>

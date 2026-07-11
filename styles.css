@@ -283,25 +283,40 @@ select {
   border-radius: 6px;
 }
 
-.option-group {
-  display: grid;
-  gap: 8px;
+.option-pair {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  min-height: 46px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f9fafb;
+  background: #fff;
 }
 
-.option-group .checkbox-row {
+.option-pair .checkbox-row {
   min-height: 28px;
   padding: 0;
   border: 0;
   background: transparent;
 }
 
-.sub-option {
+.option-main span {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.honorific-option {
+  margin-left: auto;
+  grid-template-columns: 18px auto;
   color: var(--muted);
   font-size: 12px;
+}
+
+.honorific-option span {
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .sub-option.is-disabled {
@@ -518,6 +533,19 @@ h2 {
   margin-bottom: 12px;
 }
 
+.custom-print-options {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.custom-print-options > .checkbox-row {
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
 .custom-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -549,6 +577,15 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.control-option-pair {
+  min-height: 38px;
+  padding-top: 22px;
+  padding-right: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  border: 0;
 }
 
 label {

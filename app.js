@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260711-printfields1";
+const BUILD_VERSION = "20260712-customfields1";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -115,6 +115,7 @@ function init() {
   els.buildVersion.textContent = `Build ${BUILD_VERSION}`;
   bindSettingsToForm();
   bindSimpleSettingsToForm();
+  bindCustomSettingsToForm();
   bindSimplePositionSettingsToForm();
   showMode("home");
   showSimpleStep(1);
@@ -139,6 +140,7 @@ function init() {
     document.getElementById(key).addEventListener("input", () => {
       updateSettingsFromForm();
       bindSimpleSettingsToForm();
+      bindCustomSettingsToForm();
       bindSimplePositionSettingsToForm();
       renderTable();
     });
@@ -147,7 +149,24 @@ function init() {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
       bindSettingsToForm();
+      bindCustomSettingsToForm();
       updatePrintFieldControls();
+      renderTable();
+    });
+  });
+  [
+    "simpleCustomPrintName",
+    "simpleCustomPrintNameHonorific",
+    "simpleCustomPrintRoom",
+    "customPrintName",
+    "customPrintNameHonorific",
+    "customPrintRoom"
+  ].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => {
+      updateSettingsFromCustomForm(id.startsWith("simple"));
+      bindSettingsToForm();
+      bindSimpleSettingsToForm();
+      bindCustomSettingsToForm();
       renderTable();
     });
   });
@@ -186,6 +205,7 @@ function init() {
   });
   syncRangeInputs(true);
   updatePrintFieldControls();
+  updateCustomEntryHints();
 }
 
 function showMode(mode) {
@@ -236,6 +256,20 @@ function bindSimpleSettingsToForm() {
   document.getElementById("simplePrintStayInfo").checked = Boolean(settings.printStayInfo);
   bindCopyModeToForm();
   updatePrintFieldControls();
+}
+
+function bindCustomSettingsToForm() {
+  [
+    ["simpleCustomPrintName", "printName"],
+    ["simpleCustomPrintNameHonorific", "printNameHonorific"],
+    ["simpleCustomPrintRoom", "printRoom"],
+    ["customPrintName", "printName"],
+    ["customPrintNameHonorific", "printNameHonorific"],
+    ["customPrintRoom", "printRoom"]
+  ].forEach(([id, key]) => {
+    document.getElementById(id).checked = Boolean(settings[key]);
+  });
+  updateCustomEntryHints();
 }
 
 function bindSimplePositionSettingsToForm() {
@@ -364,6 +398,20 @@ function updateSettingsFromSimpleForm() {
   updatePrintFieldControls();
 }
 
+function updateSettingsFromCustomForm(isSimple) {
+  const prefix = isSimple ? "simpleCustom" : "custom";
+  settings.printName = document.getElementById(`${prefix}PrintName`).checked;
+  settings.printNameHonorific = document.getElementById(`${prefix}PrintNameHonorific`).checked;
+  settings.printRoom = document.getElementById(`${prefix}PrintRoom`).checked;
+  updatePrintFieldControls();
+  updateCustomEntryHints();
+  return {
+    printName: settings.printName,
+    printNameHonorific: settings.printNameHonorific,
+    printRoom: settings.printRoom
+  };
+}
+
 function hasRequiredPrintField() {
   return Boolean(settings.printName || settings.printRoom);
 }
@@ -371,19 +419,59 @@ function hasRequiredPrintField() {
 function updatePrintFieldControls() {
   const simpleHonorific = document.getElementById("simplePrintNameHonorific");
   const advancedHonorific = document.getElementById("printNameHonorific");
+  const simpleCustomHonorific = document.getElementById("simpleCustomPrintNameHonorific");
+  const customHonorific = document.getElementById("customPrintNameHonorific");
   const simpleError = document.getElementById("simplePrintFieldError");
   const advancedError = document.getElementById("advancedPrintFieldError");
+  const simpleCustomError = document.getElementById("simpleCustomFieldError");
+  const customError = document.getElementById("customFieldError");
   const simpleNext = document.getElementById("simpleNextInfo");
   const isValid = hasRequiredPrintField();
 
-  [simpleHonorific, advancedHonorific].forEach((input) => {
+  [simpleHonorific, advancedHonorific, simpleCustomHonorific, customHonorific].forEach((input) => {
     if (!input) return;
     input.disabled = !settings.printName;
     input.closest(".checkbox-row")?.classList.toggle("is-disabled", !settings.printName);
   });
   if (simpleError) simpleError.hidden = isValid;
   if (advancedError) advancedError.hidden = isValid;
+  if (simpleCustomError) simpleCustomError.hidden = isValid;
+  if (customError) customError.hidden = isValid;
   if (simpleNext) simpleNext.disabled = !isValid;
+}
+
+function updateCustomEntryHints() {
+  const label = getCustomEntriesLabel(settings);
+  const placeholder = getCustomEntriesPlaceholder(settings);
+  [
+    ["simpleCustomEntriesLabel", "simpleCustomEntries"],
+    ["customEntriesLabel", "customEntries"]
+  ].forEach(([labelId, textareaId]) => {
+    const labelEl = document.getElementById(labelId);
+    const textarea = document.getElementById(textareaId);
+    if (labelEl) labelEl.textContent = label;
+    if (textarea) textarea.placeholder = placeholder;
+  });
+}
+
+function getCustomEntriesLabel(fields) {
+  if (fields.printName && fields.printRoom) return "部屋番号 / 氏名";
+  if (fields.printRoom) return "部屋番号";
+  if (fields.printName) return "氏名";
+  return "入力内容";
+}
+
+function getCustomEntriesPlaceholder(fields) {
+  if (fields.printName && fields.printRoom) {
+    return "例:\n4082 イノウエ　トモオ/カワハラ　リッカ\n4083 カワカミ　ミコト";
+  }
+  if (fields.printRoom) {
+    return "例:\n4082\n4083";
+  }
+  if (fields.printName) {
+    return "例:\nイノウエ　トモオ/カワハラ　リッカ\nカワカミ　ミコト";
+  }
+  return "氏名または部屋番号を選択してください。";
 }
 
 function updateSettingsFromSimplePositionForm() {
@@ -423,6 +511,7 @@ function resetSettings() {
   settings = { ...DEFAULT_SETTINGS };
   bindSettingsToForm();
   bindSimpleSettingsToForm();
+  bindCustomSettingsToForm();
   bindSimplePositionSettingsToForm();
   localStorage.removeItem(STORAGE_KEY);
   setStatus("初期位置に戻しました。");
@@ -432,6 +521,7 @@ function resetSimpleSettings() {
   settings = { ...DEFAULT_SETTINGS };
   bindSettingsToForm();
   bindSimpleSettingsToForm();
+  bindCustomSettingsToForm();
   bindSimplePositionSettingsToForm();
   localStorage.removeItem(STORAGE_KEY);
   setSimpleStatus("位置設定を初期値に戻しました。");
@@ -508,9 +598,9 @@ function parseSelectedSheet() {
     renderTable();
     syncRangeInputs(true);
     document.getElementById("simpleNextUpload").disabled = false;
-    const guestTotal = records.reduce((sum, record) => sum + record.outputNames.length, 0);
-    setStatus(`「${sheetName}」から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
-    setSimpleStatus(`「${sheetName}」から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
+    const summary = getRecordsSummary(records);
+    setStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
+    setSimpleStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
   } catch (error) {
     records = [];
     warnings = [];
@@ -523,15 +613,18 @@ function parseSelectedSheet() {
 }
 
 function loadCustomEntries() {
+  const fields = updateSettingsFromCustomForm(false);
+  if (!validateRequiredPrintField()) return;
   const text = els.customEntries.value.trim();
   if (!text) {
-    setStatus("直接入力欄に部屋番号と宿泊者名を入力してください。", true);
+    setStatus(`直接入力欄に${getCustomEntriesLabel(fields)}を入力してください。`, true);
     return;
   }
 
+  bindSimpleSettingsToForm();
   const groupName = els.customGroupName.value.trim();
   const stayInfo = els.customStayInfo.value.trim();
-  const parsed = parseCustomEntries(text, groupName, stayInfo);
+  const parsed = parseCustomEntries(text, groupName, stayInfo, fields);
   records = parsed.valid;
   warnings = parsed.warnings;
   currentWorkbook = null;
@@ -547,21 +640,25 @@ function loadCustomEntries() {
   renderTable();
   syncRangeInputs(true);
   document.getElementById("simpleNextUpload").disabled = false;
-  const guestTotal = records.reduce((sum, record) => sum + record.outputNames.length, 0);
-  setStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
-  setSimpleStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+  const summary = getRecordsSummary(records);
+  setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+  setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
 }
 
 function loadSimpleCustomEntries() {
+  const fields = updateSettingsFromCustomForm(true);
+  if (!validateRequiredPrintField()) return;
   const text = els.simpleCustomEntries.value.trim();
   if (!text) {
-    setSimpleStatus("直接入力欄に部屋番号と宿泊者名を入力してください。", true);
+    setSimpleStatus(`直接入力欄に${getCustomEntriesLabel(fields)}を入力してください。`, true);
     return;
   }
 
+  bindSettingsToForm();
+  bindSimpleSettingsToForm();
   const groupName = els.simpleCustomGroupName.value.trim();
   const stayInfo = els.simpleCustomStayInfo.value.trim();
-  const parsed = parseCustomEntries(text, groupName, stayInfo);
+  const parsed = parseCustomEntries(text, groupName, stayInfo, fields);
   records = parsed.valid;
   warnings = parsed.warnings;
   currentWorkbook = null;
@@ -577,26 +674,28 @@ function loadSimpleCustomEntries() {
   renderTable();
   syncRangeInputs(true);
   document.getElementById("simpleNextUpload").disabled = false;
-  const guestTotal = records.reduce((sum, record) => sum + record.outputNames.length, 0);
-  setStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
-  setSimpleStatus(`直接入力から ${records.length}室 / ${guestTotal}名のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+  const summary = getRecordsSummary(records);
+  setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
+  setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
 }
 
-function parseCustomEntries(text, groupName, stayInfo) {
+function parseCustomEntries(text, groupName, stayInfo, fields = DEFAULT_SETTINGS) {
   const valid = [];
   const rowWarnings = [];
+  const needsRoom = Boolean(fields.printRoom);
+  const needsName = Boolean(fields.printName);
 
   text.split(/\r?\n/).forEach((line, lineIndex) => {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    const parsed = parseCustomLine(trimmed);
-    if (!parsed.room || !parsed.names.length) {
+    const parsed = parseCustomLineForFields(trimmed, { needsRoom, needsName });
+    if ((needsRoom && !parsed.room) || (needsName && !parsed.names.length)) {
       rowWarnings.push({
         excelRow: lineIndex + 1,
         room: parsed.room || "",
         rawName: parsed.rawNames || trimmed,
-        reason: !parsed.room ? "部屋番号が空です" : "宿泊者名が空です"
+        reason: needsRoom && !parsed.room ? "部屋番号が空です" : "氏名が空です"
       });
       return;
     }
@@ -618,6 +717,25 @@ function parseCustomEntries(text, groupName, stayInfo) {
   });
 
   return { valid, warnings: rowWarnings };
+}
+
+function parseCustomLineForFields(line, fields) {
+  if (fields.needsRoom && fields.needsName) return parseCustomLine(line);
+  if (fields.needsRoom) {
+    return {
+      room: line.trim(),
+      names: [],
+      rawNames: ""
+    };
+  }
+  if (fields.needsName) {
+    return {
+      room: "",
+      names: splitCustomNames(line),
+      rawNames: line.trim()
+    };
+  }
+  return { room: "", names: [], rawNames: line };
 }
 
 function parseCustomLine(line) {
@@ -775,9 +893,14 @@ function normalizeNights(value) {
   return text;
 }
 
+function getRecordsSummary(list) {
+  const guestTotal = list.reduce((sum, record) => sum + record.outputNames.length, 0);
+  const unit = list.length && list.every((record) => record.room) ? "室" : "件";
+  return guestTotal ? `${list.length}${unit} / ${guestTotal}名` : `${list.length}${unit}`;
+}
+
 function renderTable() {
-  const guestTotal = records.reduce((sum, record) => sum + record.outputNames.length, 0);
-  els.countBadge.textContent = `${records.length}室 / ${guestTotal}名`;
+  els.countBadge.textContent = getRecordsSummary(records);
   els.warningBadge.textContent = warnings.length ? `警告 ${warnings.length}件` : "";
 
   const rows = records.map((record) => `
