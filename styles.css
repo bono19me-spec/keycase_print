@@ -307,6 +307,23 @@ select {
   font-weight: 900;
 }
 
+.preview-option {
+  grid-template-columns: 18px auto minmax(0, 1fr);
+}
+
+.option-preview {
+  justify-self: end;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .honorific-option {
   margin-left: auto;
   grid-template-columns: 18px auto;
@@ -330,6 +347,83 @@ select {
   color: #8a3f00;
   font-size: 13px;
   font-weight: 800;
+}
+
+.sub-settings {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d8e2e7;
+  border-radius: 6px;
+  background: #f7fbfc;
+}
+
+.stay-sub-settings {
+  margin-top: -4px;
+}
+
+.date-picker-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d8e2e7;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.date-picker-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.calendar-weekday,
+.calendar-empty,
+.calendar-day {
+  min-height: 28px;
+}
+
+.calendar-weekday {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.calendar-day {
+  min-width: 0;
+  padding: 0;
+  border-color: #c6ced8;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.calendar-day:hover,
+.calendar-day.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.selected-dates {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.compact-button {
+  min-height: 38px;
+  padding: 8px 10px;
 }
 
 .copy-mode-panel {

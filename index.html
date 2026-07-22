@@ -143,6 +143,26 @@
             <label class="checkbox-row option-main"><input id="simplePrintRoom" type="checkbox" checked><span>部屋番号</span></label>
             <label class="checkbox-row option-main"><input id="simplePrintGroupName" type="checkbox"><span>団体名</span></label>
             <label class="checkbox-row option-main"><input id="simplePrintStayInfo" type="checkbox"><span>宿泊情報</span></label>
+            <div id="simpleStayInfoSubPanel" class="sub-settings stay-sub-settings" hidden>
+              <label class="checkbox-row option-main preview-option"><input id="simplePrintCleaningInfo" type="checkbox"><span>清掃日</span><small id="simpleCleaningInfoPreview" class="option-preview"></small></label>
+              <div id="simpleCleaningInfoPicker" class="date-picker-panel" hidden>
+                <div class="date-picker-toolbar">
+                  <label>月<input id="simpleCleaningInfoMonth" type="month"></label>
+                  <button id="simpleClearCleaningInfoDates" type="button" class="secondary compact-button">消去</button>
+                </div>
+                <div id="simpleCleaningInfoCalendar" class="calendar-grid"></div>
+                <span id="simpleCleaningInfoSelectedDates" class="selected-dates"></span>
+              </div>
+              <label class="checkbox-row option-main preview-option"><input id="simplePrintRcInfo" type="checkbox"><span>R/C</span><small id="simpleRcInfoPreview" class="option-preview"></small></label>
+              <div id="simpleRcInfoPicker" class="date-picker-panel" hidden>
+                <div class="date-picker-toolbar">
+                  <label>月<input id="simpleRcInfoMonth" type="month"></label>
+                  <button id="simpleClearRcInfoDates" type="button" class="secondary compact-button">消去</button>
+                </div>
+                <div id="simpleRcInfoCalendar" class="calendar-grid"></div>
+                <span id="simpleRcInfoSelectedDates" class="selected-dates"></span>
+              </div>
+            </div>
             <div id="simplePrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
             <div id="simpleCopyModePanel" class="copy-mode-panel" hidden>
               <strong>2名以上の部屋の印刷枚数</strong>
@@ -290,6 +310,26 @@
             <label class="checkbox-row option-main"><input id="printRoom" type="checkbox" checked><span>部屋番号</span></label>
             <label class="checkbox-row option-main"><input id="printGroupName" type="checkbox"><span>団体名</span></label>
             <label class="checkbox-row option-main"><input id="printStayInfo" type="checkbox"><span>宿泊情報</span></label>
+            <div id="stayInfoSubPanel" class="sub-settings stay-sub-settings">
+              <label class="checkbox-row option-main preview-option"><input id="printCleaningInfo" type="checkbox"><span>清掃日</span><small id="cleaningInfoPreview" class="option-preview"></small></label>
+              <div id="cleaningInfoPicker" class="date-picker-panel" hidden>
+                <div class="date-picker-toolbar">
+                  <label>月<input id="cleaningInfoMonth" type="month"></label>
+                  <button id="clearCleaningInfoDates" type="button" class="secondary compact-button">消去</button>
+                </div>
+                <div id="cleaningInfoCalendar" class="calendar-grid"></div>
+                <span id="cleaningInfoSelectedDates" class="selected-dates"></span>
+              </div>
+              <label class="checkbox-row option-main preview-option"><input id="printRcInfo" type="checkbox"><span>R/C</span><small id="rcInfoPreview" class="option-preview"></small></label>
+              <div id="rcInfoPicker" class="date-picker-panel" hidden>
+                <div class="date-picker-toolbar">
+                  <label>月<input id="rcInfoMonth" type="month"></label>
+                  <button id="clearRcInfoDates" type="button" class="secondary compact-button">消去</button>
+                </div>
+                <div id="rcInfoCalendar" class="calendar-grid"></div>
+                <span id="rcInfoSelectedDates" class="selected-dates"></span>
+              </div>
+            </div>
             <label class="checkbox-row"><input id="rotate180" type="checkbox">180度回転</label>
           </div>
           <div id="advancedPrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
@@ -337,12 +377,14 @@
                 <th>宿泊者名</th>
                 <th>人数</th>
                 <th>宿泊情報</th>
+                <th>清掃日</th>
+                <th>R/C</th>
                 <th>印刷名</th>
                 <th>状態</th>
               </tr>
             </thead>
             <tbody id="dataTable">
-              <tr><td colspan="8" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>
+              <tr><td colspan="10" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>
             </tbody>
           </table>
         </div>
@@ -351,6 +393,6 @@
     </main>
 
     <script src="vendor/xlsx.full.min.js"></script>
-    <script src="app.js?v=20260712-customfields1"></script>
+    <script src="app.js?v=20260722-staydates3"></script>
   </body>
 </html>

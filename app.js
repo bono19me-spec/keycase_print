@@ -18,10 +18,20 @@ const DEFAULT_SETTINGS = {
   groupNameY: 14,
   groupNameFontSize: 9,
   stayInfoX: 98,
-  stayInfoY: 52,
+  stayInfoY: 44,
   stayInfoFontSize: 9,
+  cleaningInfoX: 98,
+  cleaningInfoY: 52,
+  cleaningInfoFontSize: 8,
+  rcInfoX: 98,
+  rcInfoY: 60,
+  rcInfoFontSize: 8,
   printGroupName: false,
   printStayInfo: false,
+  printCleaningInfo: false,
+  cleaningInfoCustomText: "",
+  printRcInfo: false,
+  rcInfoCustomText: "",
   printCopyMode: "room",
   globalOffsetX: 0,
   globalOffsetY: 0,
@@ -33,7 +43,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260712-customfields1";
+const BUILD_VERSION = "20260722-staydates3";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -93,6 +103,8 @@ const settingInputs = [
   "printRoom",
   "printGroupName",
   "printStayInfo",
+  "printCleaningInfo",
+  "printRcInfo",
   "rotate180"
 ];
 
@@ -145,11 +157,12 @@ function init() {
       renderTable();
     });
   });
-  ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo"].forEach((id) => {
+  ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
       bindSettingsToForm();
       bindCustomSettingsToForm();
+      bindCleaningSettingsToForm();
       updatePrintFieldControls();
       renderTable();
     });
@@ -167,6 +180,14 @@ function init() {
       bindSettingsToForm();
       bindSimpleSettingsToForm();
       bindCustomSettingsToForm();
+      renderTable();
+    });
+  });
+  getDatePickerConfigs().forEach((config) => {
+    document.getElementById(config.monthId).addEventListener("input", () => renderDatePicker(config));
+    document.getElementById(config.clearButtonId).addEventListener("click", () => {
+      settings[config.textKey] = "";
+      bindCleaningSettingsToForm();
       renderTable();
     });
   });
@@ -205,6 +226,7 @@ function init() {
   });
   syncRangeInputs(true);
   updatePrintFieldControls();
+  bindCleaningSettingsToForm();
   updateCustomEntryHints();
 }
 
@@ -254,8 +276,20 @@ function bindSimpleSettingsToForm() {
   document.getElementById("simplePrintRoom").checked = Boolean(settings.printRoom);
   document.getElementById("simplePrintGroupName").checked = Boolean(settings.printGroupName);
   document.getElementById("simplePrintStayInfo").checked = Boolean(settings.printStayInfo);
+  document.getElementById("simplePrintCleaningInfo").checked = Boolean(settings.printCleaningInfo);
+  document.getElementById("simplePrintRcInfo").checked = Boolean(settings.printRcInfo);
   bindCopyModeToForm();
   updatePrintFieldControls();
+  bindCleaningSettingsToForm();
+}
+
+function bindCleaningSettingsToForm() {
+  getDatePickerConfigs().forEach((config) => {
+    const monthInput = document.getElementById(config.monthId);
+    if (!monthInput.value) monthInput.value = getDefaultPickerMonth();
+    renderDatePicker(config);
+  });
+  updateCleaningControls();
 }
 
 function bindCustomSettingsToForm() {
@@ -385,6 +419,7 @@ function updateSettingsFromForm() {
   const selected = document.querySelector('input[name="advancedCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
   updatePrintFieldControls();
+  updateCleaningControls();
 }
 
 function updateSettingsFromSimpleForm() {
@@ -393,9 +428,12 @@ function updateSettingsFromSimpleForm() {
   settings.printRoom = document.getElementById("simplePrintRoom").checked;
   settings.printGroupName = document.getElementById("simplePrintGroupName").checked;
   settings.printStayInfo = document.getElementById("simplePrintStayInfo").checked;
+  settings.printCleaningInfo = document.getElementById("simplePrintCleaningInfo").checked;
+  settings.printRcInfo = document.getElementById("simplePrintRcInfo").checked;
   const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
   updatePrintFieldControls();
+  updateCleaningControls();
 }
 
 function updateSettingsFromCustomForm(isSimple) {
@@ -438,6 +476,163 @@ function updatePrintFieldControls() {
   if (simpleCustomError) simpleCustomError.hidden = isValid;
   if (customError) customError.hidden = isValid;
   if (simpleNext) simpleNext.disabled = !isValid;
+}
+
+function updateCleaningControls() {
+  const stayEnabled = Boolean(settings.printStayInfo);
+
+  [
+    ["simpleStayInfoSubPanel", "simplePrintCleaningInfo", "simplePrintRcInfo"],
+    ["stayInfoSubPanel", "printCleaningInfo", "printRcInfo"]
+  ].forEach(([panelId, cleaningInputId, rcInputId]) => {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.hidden = !stayEnabled;
+    [cleaningInputId, rcInputId].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.disabled = !stayEnabled;
+    });
+  });
+
+  getDatePickerConfigs().forEach((config) => {
+    const enabled = stayEnabled && Boolean(settings[config.printKey]);
+    document.getElementById(config.panelId).hidden = !enabled;
+    document.getElementById(config.monthId).disabled = !enabled;
+    document.getElementById(config.clearButtonId).disabled = !enabled;
+    document.getElementById(config.selectedId).textContent = formatSelectedDates(settings[config.textKey]);
+    document.getElementById(config.previewId).textContent = enabled ? getDateInfoText(config) || "日付を選択" : "";
+  });
+}
+
+function getDatePickerConfigs() {
+  return [
+    {
+      label: "清掃",
+      maxDates: 6,
+      printKey: "printCleaningInfo",
+      textKey: "cleaningInfoCustomText",
+      panelId: "cleaningInfoPicker",
+      monthId: "cleaningInfoMonth",
+      calendarId: "cleaningInfoCalendar",
+      clearButtonId: "clearCleaningInfoDates",
+      selectedId: "cleaningInfoSelectedDates",
+      previewId: "cleaningInfoPreview"
+    },
+    {
+      label: "清掃",
+      maxDates: 6,
+      printKey: "printCleaningInfo",
+      textKey: "cleaningInfoCustomText",
+      panelId: "simpleCleaningInfoPicker",
+      monthId: "simpleCleaningInfoMonth",
+      calendarId: "simpleCleaningInfoCalendar",
+      clearButtonId: "simpleClearCleaningInfoDates",
+      selectedId: "simpleCleaningInfoSelectedDates",
+      previewId: "simpleCleaningInfoPreview"
+    },
+    {
+      label: "部屋変更",
+      maxDates: 1,
+      printKey: "printRcInfo",
+      textKey: "rcInfoCustomText",
+      panelId: "rcInfoPicker",
+      monthId: "rcInfoMonth",
+      calendarId: "rcInfoCalendar",
+      clearButtonId: "clearRcInfoDates",
+      selectedId: "rcInfoSelectedDates",
+      previewId: "rcInfoPreview"
+    },
+    {
+      label: "部屋変更",
+      maxDates: 1,
+      printKey: "printRcInfo",
+      textKey: "rcInfoCustomText",
+      panelId: "simpleRcInfoPicker",
+      monthId: "simpleRcInfoMonth",
+      calendarId: "simpleRcInfoCalendar",
+      clearButtonId: "simpleClearRcInfoDates",
+      selectedId: "simpleRcInfoSelectedDates",
+      previewId: "simpleRcInfoPreview"
+    }
+  ];
+}
+
+function getDefaultPickerMonth() {
+  const date = records.find((record) => record.arrivalDate)?.arrivalDate || new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function renderDatePicker(config) {
+  const calendar = document.getElementById(config.calendarId);
+  const monthInput = document.getElementById(config.monthId);
+  const monthValue = monthInput.value || getDefaultPickerMonth();
+  monthInput.value = monthValue;
+  const [year, month] = monthValue.split("-").map(Number);
+  if (!year || !month) return;
+
+  const selected = new Set(parseDateInfoDates(settings[config.textKey]));
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const cells = ["日", "月", "火", "水", "木", "金", "土"].map((day) => `<span class="calendar-weekday">${day}</span>`);
+
+  for (let index = 0; index < firstDay; index += 1) {
+    cells.push('<span class="calendar-empty"></span>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateText = `${month}/${day}`;
+    const active = selected.has(dateText) ? " active" : "";
+    cells.push(`<button type="button" class="calendar-day${active}" data-date="${dateText}">${day}</button>`);
+  }
+
+  calendar.innerHTML = cells.join("");
+  calendar.querySelectorAll(".calendar-day").forEach((button) => {
+    button.addEventListener("click", () => {
+      toggleSavedDate(config, button.dataset.date);
+      bindCleaningSettingsToForm();
+      renderTable();
+    });
+  });
+}
+
+function toggleSavedDate(config, dateText) {
+  const dates = new Set(parseDateInfoDates(settings[config.textKey]));
+  if (dates.has(dateText)) {
+    dates.delete(dateText);
+  } else {
+    if (config.maxDates === 1) {
+      dates.clear();
+    } else if (dates.size >= config.maxDates) {
+      return;
+    }
+    dates.add(dateText);
+  }
+  const sortedDates = sortMonthDayDates([...dates]);
+  settings[config.textKey] = sortedDates.length ? `${config.label} ${sortedDates.join("、")}` : "";
+}
+
+function parseDateInfoDates(text) {
+  return String(text || "")
+    .replace(/^(清掃|R\/C|部屋変更)\s*/, "")
+    .split(/[、,\s]+/)
+    .map((date) => date.trim())
+    .filter((date) => /^\d{1,2}\/\d{1,2}$/.test(date));
+}
+
+function sortMonthDayDates(dates) {
+  return [...new Set(dates)].sort((a, b) => {
+    const [monthA, dayA] = a.split("/").map(Number);
+    const [monthB, dayB] = b.split("/").map(Number);
+    return monthA - monthB || dayA - dayB;
+  });
+}
+
+function formatSelectedDates(text) {
+  const dates = parseDateInfoDates(text);
+  return dates.length ? `選択済み: ${dates.join("、")}` : "日付未選択";
+}
+
+function getDateInfoText(config) {
+  return String(settings[config.textKey] || "").trim();
 }
 
 function updateCustomEntryHints() {
@@ -512,6 +707,7 @@ function resetSettings() {
   bindSettingsToForm();
   bindSimpleSettingsToForm();
   bindCustomSettingsToForm();
+  bindCleaningSettingsToForm();
   bindSimplePositionSettingsToForm();
   localStorage.removeItem(STORAGE_KEY);
   setStatus("初期位置に戻しました。");
@@ -522,6 +718,7 @@ function resetSimpleSettings() {
   bindSettingsToForm();
   bindSimpleSettingsToForm();
   bindCustomSettingsToForm();
+  bindCleaningSettingsToForm();
   bindSimplePositionSettingsToForm();
   localStorage.removeItem(STORAGE_KEY);
   setSimpleStatus("位置設定を初期値に戻しました。");
@@ -531,7 +728,11 @@ function pickSettings(source) {
   return settingInputs.reduce((picked, key) => {
     picked[key] = source[key];
     return picked;
-  }, { printCopyMode: source.printCopyMode });
+  }, {
+    printCopyMode: source.printCopyMode,
+    cleaningInfoCustomText: source.cleaningInfoCustomText,
+    rcInfoCustomText: source.rcInfoCustomText
+  });
 }
 
 async function handleFile(event) {
@@ -684,6 +885,7 @@ function parseCustomEntries(text, groupName, stayInfo, fields = DEFAULT_SETTINGS
   const rowWarnings = [];
   const needsRoom = Boolean(fields.printRoom);
   const needsName = Boolean(fields.printName);
+  const arrivalDate = parseMonthDayDate(stayInfo);
 
   text.split(/\r?\n/).forEach((line, lineIndex) => {
     const trimmed = line.trim();
@@ -712,7 +914,8 @@ function parseCustomEntries(text, groupName, stayInfo, fields = DEFAULT_SETTINGS
       outputName: outputNames.join(" / "),
       guestCount: outputNames.length,
       groupName,
-      stayInfo
+      stayInfo,
+      arrivalDate
     });
   });
 
@@ -789,6 +992,7 @@ function extractRecords(sheet) {
     const rawName = normalizeCell(sheet[XLSX.utils.encode_cell({ r: row, c: nameColumnIndex })]);
     const arrivalCell = sheet[XLSX.utils.encode_cell({ r: row, c: XLSX.utils.decode_col("F") })];
     const nights = normalizeCell(sheet[XLSX.utils.encode_cell({ r: row, c: XLSX.utils.decode_col("K") })]);
+    const arrivalDate = parseExcelArrivalDate(arrivalCell);
 
     if (!room && !rawName) continue;
 
@@ -830,7 +1034,8 @@ function extractRecords(sheet) {
       outputName: normalizeGuestName(rawName),
       guestCount: 1,
       groupName,
-      stayInfo: formatStayInfo(arrivalCell, nights)
+      stayInfo: formatStayInfo(arrivalCell, nights),
+      arrivalDate
     };
     valid.push(currentRecord);
   }
@@ -884,8 +1089,30 @@ function formatExcelDate(cell) {
     if (date) return `${date.m}/${date.d}`;
   }
   const text = normalizeCell(cell);
+  const fullDateMatch = text.match(/\d{4}[/-](\d{1,2})[/-](\d{1,2})/);
+  if (fullDateMatch) return `${Number(fullDateMatch[1])}/${Number(fullDateMatch[2])}`;
   const match = text.match(/(\d{1,2})[/-](\d{1,2})/);
   return match ? `${Number(match[1])}/${Number(match[2])}` : text;
+}
+
+function parseExcelArrivalDate(cell) {
+  if (!cell) return null;
+  if (typeof cell.v === "number" && Number.isFinite(cell.v)) {
+    const date = XLSX.SSF.parse_date_code(cell.v);
+    if (date) return new Date(date.y, date.m - 1, date.d);
+  }
+  return parseMonthDayDate(normalizeCell(cell));
+}
+
+function parseMonthDayDate(value) {
+  const text = String(value || "");
+  const fullDateMatch = text.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  const monthDayMatch = text.match(/(\d{1,2})[/-](\d{1,2})/);
+  const year = fullDateMatch ? Number(fullDateMatch[1]) : new Date().getFullYear();
+  const month = Number(fullDateMatch ? fullDateMatch[2] : monthDayMatch?.[1]);
+  const day = Number(fullDateMatch ? fullDateMatch[3] : monthDayMatch?.[2]);
+  if (!month || !day || month > 12 || day > 31) return null;
+  return new Date(year, month - 1, day);
 }
 
 function normalizeNights(value) {
@@ -897,6 +1124,16 @@ function getRecordsSummary(list) {
   const guestTotal = list.reduce((sum, record) => sum + record.outputNames.length, 0);
   const unit = list.length && list.every((record) => record.room) ? "室" : "件";
   return guestTotal ? `${list.length}${unit} / ${guestTotal}名` : `${list.length}${unit}`;
+}
+
+function getCleaningInfo(record) {
+  if (!settings.printStayInfo || !settings.printCleaningInfo) return "";
+  return settings.cleaningInfoCustomText.trim();
+}
+
+function getRcInfo(record) {
+  if (!settings.printStayInfo || !settings.printRcInfo) return "";
+  return settings.rcInfoCustomText.trim();
 }
 
 function renderTable() {
@@ -911,6 +1148,8 @@ function renderTable() {
       <td>${escapeHtml(record.rawName)}</td>
       <td>${record.outputNames.length}</td>
       <td>${escapeHtml(record.stayInfo)}</td>
+      <td>${escapeHtml(getCleaningInfo(record))}</td>
+      <td>${escapeHtml(getRcInfo(record))}</td>
       <td>${escapeHtml(getPrintableNames(record).join(" / "))}</td>
       <td>使用</td>
     </tr>
@@ -925,12 +1164,15 @@ function renderTable() {
       <td>-</td>
       <td>-</td>
       <td>-</td>
+      <td>-</td>
+      <td>-</td>
       <td>${warning.reason}</td>
     </tr>
   `);
 
-  els.dataTable.innerHTML = rows.concat(warningRows).join("") || '<tr><td colspan="8" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>';
+  els.dataTable.innerHTML = rows.concat(warningRows).join("") || '<tr><td colspan="10" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>';
   updateCopyModeVisibility();
+  updateCleaningControls();
 }
 
 function ensureData() {
@@ -1068,7 +1310,9 @@ function buildPrintHtml(selected) {
     .name,
     .room,
     .group-name,
-    .stay-info {
+    .stay-info,
+    .cleaning-info,
+    .rc-info {
       position: absolute;
       margin: 0;
       padding: 0;
@@ -1097,6 +1341,24 @@ function buildPrintHtml(selected) {
       left: ${printX(settings.stayInfoX)}mm;
       top: ${printY(settings.stayInfoY)}mm;
       font-size: ${settings.stayInfoFontSize}pt;
+      transform: ${printTransform()};
+    }
+    .cleaning-info {
+      left: ${printX(settings.cleaningInfoX)}mm;
+      top: ${printY(settings.cleaningInfoY)}mm;
+      max-width: 74mm;
+      font-size: ${settings.cleaningInfoFontSize}pt;
+      line-height: 1.15;
+      white-space: normal;
+      transform: ${printTransform()};
+    }
+    .rc-info {
+      left: ${printX(settings.rcInfoX)}mm;
+      top: ${printY(settings.rcInfoY)}mm;
+      max-width: 74mm;
+      font-size: ${settings.rcInfoFontSize}pt;
+      line-height: 1.15;
+      white-space: normal;
       transform: ${printTransform()};
     }
     @media screen {
@@ -1145,6 +1407,14 @@ function buildPrintPage(record) {
   const stayInfo = settings.printStayInfo && record.stayInfo
     ? `<p class="stay-info" style="top:${printY(nameLayout.stayInfoY)}mm;">${escapeHtml(record.stayInfo)}</p>`
     : "";
+  const cleaningInfoText = getCleaningInfo(record);
+  const cleaningInfo = cleaningInfoText
+    ? `<p class="cleaning-info" style="top:${printY(nameLayout.cleaningInfoY)}mm;">${escapeHtml(cleaningInfoText)}</p>`
+    : "";
+  const rcInfoText = getRcInfo(record);
+  const rcInfo = rcInfoText
+    ? `<p class="rc-info" style="top:${printY(nameLayout.rcInfoY)}mm;">${escapeHtml(rcInfoText)}</p>`
+    : "";
   const names = printableNames.map((name, index) => (
     `<p class="name" style="left:${printX(settings.nameX)}mm; top:${printY(nameLayout.firstNameY + nameLayout.lineGap * index)}mm; font-size:${nameLayout.fontSize}pt;">${escapeHtml(name)}</p>`
   )).join("");
@@ -1156,6 +1426,8 @@ function buildPrintPage(record) {
     <div class="guide"></div>
     ${groupName}
     ${stayInfo}
+    ${cleaningInfo}
+    ${rcInfo}
     ${names}
     ${room}
   </section>`;
@@ -1180,7 +1452,9 @@ function getNameLayout(record) {
     fontSize,
     lineGap,
     firstNameY: Number(settings.nameY) - upwardShift,
-    stayInfoY: Number(settings.stayInfoY) - upwardShift
+    stayInfoY: Number(settings.stayInfoY) - upwardShift,
+    cleaningInfoY: Number(settings.cleaningInfoY) - upwardShift,
+    rcInfoY: Number(settings.rcInfoY) - upwardShift
   };
 }
 
