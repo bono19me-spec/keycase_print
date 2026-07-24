@@ -134,36 +134,100 @@
         <section class="panel simple-step" data-simple-step="2" hidden>
           <p class="eyebrow">Step 2</p>
           <h2><svg class="heading-icon"><use href="#icon-user"></use></svg>印刷情報を選択</h2>
-          <p class="muted">氏名と部屋番号は基本チェック状態です。どちらか一方は必ず選択してください。必要に応じて団体名、宿泊情報も追加できます。</p>
+          <p class="muted">印刷したい項目をチェックしてください。実際のデータが右側に表示され、団体名はここで直接変更も可能です。</p>
+
           <div class="simple-options">
-            <div class="option-pair">
-              <label class="checkbox-row option-main"><input id="simplePrintName" type="checkbox" checked><span>氏名</span></label>
-              <label class="checkbox-row sub-option honorific-option"><input id="simplePrintNameHonorific" type="checkbox" checked><span>様</span></label>
-            </div>
-            <label class="checkbox-row option-main"><input id="simplePrintRoom" type="checkbox" checked><span>部屋番号</span></label>
-            <label class="checkbox-row option-main"><input id="simplePrintGroupName" type="checkbox"><span>団体名</span></label>
-            <label class="checkbox-row option-main"><input id="simplePrintStayInfo" type="checkbox"><span>宿泊情報</span></label>
-            <div id="simpleStayInfoSubPanel" class="sub-settings stay-sub-settings" hidden>
-              <label class="checkbox-row option-main preview-option"><input id="simplePrintCleaningInfo" type="checkbox"><span>清掃日</span><small id="simpleCleaningInfoPreview" class="option-preview"></small></label>
-              <div id="simpleCleaningInfoPicker" class="date-picker-panel" hidden>
-                <div class="date-picker-toolbar">
-                  <label>月<input id="simpleCleaningInfoMonth" type="month"></label>
-                  <button id="simpleClearCleaningInfoDates" type="button" class="secondary compact-button">消去</button>
-                </div>
-                <div id="simpleCleaningInfoCalendar" class="calendar-grid"></div>
-                <span id="simpleCleaningInfoSelectedDates" class="selected-dates"></span>
+            <!-- 氏名 -->
+            <div class="option-card option-card-pair" id="cardName">
+              <div class="option-card-main">
+                <label class="checkbox-row option-main">
+                  <input id="simplePrintName" type="checkbox" checked>
+                  <span>氏名</span>
+                </label>
+                <label class="checkbox-row sub-option honorific-option">
+                  <input id="simplePrintNameHonorific" type="checkbox" checked>
+                  <span>様</span>
+                </label>
               </div>
-              <label class="checkbox-row option-main preview-option"><input id="simplePrintRcInfo" type="checkbox"><span>R/C</span><small id="simpleRcInfoPreview" class="option-preview"></small></label>
-              <div id="simpleRcInfoPicker" class="date-picker-panel" hidden>
-                <div class="date-picker-toolbar">
-                  <label>月<input id="simpleRcInfoMonth" type="month"></label>
-                  <button id="simpleClearRcInfoDates" type="button" class="secondary compact-button">消去</button>
-                </div>
-                <div id="simpleRcInfoCalendar" class="calendar-grid"></div>
-                <span id="simpleRcInfoSelectedDates" class="selected-dates"></span>
+              <span id="simpleNamePreviewChip" class="preview-chip name-chip">例: 山田 太郎 様</span>
+            </div>
+
+            <!-- 部屋番号 -->
+            <div class="option-card" id="cardRoom">
+              <label class="checkbox-row option-main">
+                <input id="simplePrintRoom" type="checkbox" checked>
+                <span>部屋番号</span>
+              </label>
+              <span id="simpleRoomPreviewChip" class="preview-chip room-chip">例: 704</span>
+            </div>
+
+            <!-- 団体名 -->
+            <div class="option-card option-card-editable" id="cardGroupName">
+              <div class="option-card-header">
+                <label class="checkbox-row option-main">
+                  <input id="simplePrintGroupName" type="checkbox">
+                  <span>団体名</span>
+                </label>
+                <span id="simpleGroupNamePreviewBadge" class="preview-chip group-chip" hidden>表示中</span>
+              </div>
+              <div class="option-card-body" id="simpleGroupNameBody">
+                <input id="simpleGroupNameInput" type="text" class="editable-chip-input" placeholder="団体名を入力（例: 東横商事 御一行様）" value="">
               </div>
             </div>
+
+            <!-- 宿泊情報 -->
+            <div class="option-card option-card-group" id="cardStayInfo">
+              <div class="option-card-header">
+                <label class="checkbox-row option-main">
+                  <input id="simplePrintStayInfo" type="checkbox">
+                  <span>宿泊情報</span>
+                </label>
+                <span id="simpleStayInfoPreviewChip" class="preview-chip stay-chip">未読み込み</span>
+              </div>
+
+              <div id="simpleStayInfoSubPanel" class="sub-settings stay-sub-settings" hidden>
+                <!-- 清掃日 -->
+                <div class="sub-option-card">
+                  <div class="sub-option-header">
+                    <label class="checkbox-row option-main preview-option">
+                      <input id="simplePrintCleaningInfo" type="checkbox">
+                      <span>清掃日</span>
+                    </label>
+                    <span id="simpleCleaningInfoPreview" class="preview-chip date-chip">未選択</span>
+                  </div>
+                  <div id="simpleCleaningInfoPicker" class="date-picker-panel" hidden>
+                    <div class="date-picker-toolbar">
+                      <label>月<input id="simpleCleaningInfoMonth" type="month"></label>
+                      <button id="simpleClearCleaningInfoDates" type="button" class="secondary compact-button">消去</button>
+                    </div>
+                    <div id="simpleCleaningInfoCalendar" class="calendar-grid"></div>
+                    <span id="simpleCleaningInfoSelectedDates" class="selected-dates"></span>
+                  </div>
+                </div>
+
+                <!-- R/C -->
+                <div class="sub-option-card">
+                  <div class="sub-option-header">
+                    <label class="checkbox-row option-main preview-option">
+                      <input id="simplePrintRcInfo" type="checkbox">
+                      <span>R/C (部屋変更)</span>
+                    </label>
+                    <span id="simpleRcInfoPreview" class="preview-chip date-chip">未選択</span>
+                  </div>
+                  <div id="simpleRcInfoPicker" class="date-picker-panel" hidden>
+                    <div class="date-picker-toolbar">
+                      <label>月<input id="simpleRcInfoMonth" type="month"></label>
+                      <button id="simpleClearRcInfoDates" type="button" class="secondary compact-button">消去</button>
+                    </div>
+                    <div id="simpleRcInfoCalendar" class="calendar-grid"></div>
+                    <span id="simpleRcInfoSelectedDates" class="selected-dates"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div id="simplePrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
+
             <div id="simpleCopyModePanel" class="copy-mode-panel" hidden>
               <strong>2名以上の部屋の印刷枚数</strong>
               <label class="radio-row"><input type="radio" name="simpleCopyMode" value="room" checked>部屋ごとに1枚印刷</label>
@@ -308,7 +372,10 @@
               <label class="checkbox-row sub-option honorific-option"><input id="printNameHonorific" type="checkbox" checked><span>様</span></label>
             </div>
             <label class="checkbox-row option-main"><input id="printRoom" type="checkbox" checked><span>部屋番号</span></label>
-            <label class="checkbox-row option-main"><input id="printGroupName" type="checkbox"><span>団体名</span></label>
+            <div class="advanced-group-name-row">
+              <label class="checkbox-row option-main"><input id="printGroupName" type="checkbox"><span>団体名</span></label>
+              <input id="advancedGroupNameInput" type="text" class="editable-chip-input" placeholder="団体名を入力" value="">
+            </div>
             <label class="checkbox-row option-main"><input id="printStayInfo" type="checkbox"><span>宿泊情報</span></label>
             <div id="stayInfoSubPanel" class="sub-settings stay-sub-settings">
               <label class="checkbox-row option-main preview-option"><input id="printCleaningInfo" type="checkbox"><span>清掃日</span><small id="cleaningInfoPreview" class="option-preview"></small></label>

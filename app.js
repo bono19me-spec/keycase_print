@@ -84,6 +84,12 @@ const els = {
   simpleCustomGroupName: document.getElementById("simpleCustomGroupName"),
   simpleCustomStayInfo: document.getElementById("simpleCustomStayInfo"),
   simpleCustomEntries: document.getElementById("simpleCustomEntries"),
+  simpleGroupNameInput: document.getElementById("simpleGroupNameInput"),
+  advancedGroupNameInput: document.getElementById("advancedGroupNameInput"),
+  simpleGroupNamePreviewBadge: document.getElementById("simpleGroupNamePreviewBadge"),
+  simpleNamePreviewChip: document.getElementById("simpleNamePreviewChip"),
+  simpleRoomPreviewChip: document.getElementById("simpleRoomPreviewChip"),
+  simpleStayInfoPreviewChip: document.getElementById("simpleStayInfoPreviewChip"),
   rangeStart: document.getElementById("rangeStart"),
   rangeEnd: document.getElementById("rangeEnd"),
   buildVersion: document.getElementById("buildVersion")
@@ -183,6 +189,17 @@ function init() {
       renderTable();
     });
   });
+
+  const handleGroupNameChange = (e) => {
+    const val = e.target.value;
+    if (els.simpleGroupNameInput && els.simpleGroupNameInput !== e.target) els.simpleGroupNameInput.value = val;
+    if (els.advancedGroupNameInput && els.advancedGroupNameInput !== e.target) els.advancedGroupNameInput.value = val;
+    records.forEach((r) => { r.groupName = val; });
+    renderTable();
+  };
+  if (els.simpleGroupNameInput) els.simpleGroupNameInput.addEventListener("input", handleGroupNameChange);
+  if (els.advancedGroupNameInput) els.advancedGroupNameInput.addEventListener("input", handleGroupNameChange);
+
   getDatePickerConfigs().forEach((config) => {
     document.getElementById(config.monthId).addEventListener("input", () => renderDatePicker(config));
     document.getElementById(config.clearButtonId).addEventListener("click", () => {
@@ -478,6 +495,53 @@ function updatePrintFieldControls() {
   if (simpleNext) simpleNext.disabled = !isValid;
 }
 
+function updatePreviewChips() {
+  const firstRecord = records[0];
+
+  // 氏名 Preview Chip
+  if (els.simpleNamePreviewChip) {
+    if (firstRecord && firstRecord.outputNames && firstRecord.outputNames.length) {
+      const formatted = formatGuestNameForPrint(firstRecord.outputNames[0]);
+      els.simpleNamePreviewChip.textContent = `例: ${formatted}`;
+    } else {
+      els.simpleNamePreviewChip.textContent = settings.printNameHonorific ? "例: 山田 太郎 様" : "例: 山田 太郎";
+    }
+  }
+
+  // 部屋番号 Preview Chip
+  if (els.simpleRoomPreviewChip) {
+    if (firstRecord && firstRecord.room) {
+      els.simpleRoomPreviewChip.textContent = `例: ${firstRecord.room}`;
+    } else {
+      els.simpleRoomPreviewChip.textContent = "例: 704";
+    }
+  }
+
+  // 団体名 (Group Name) Input & Preview
+  const groupNameVal = (firstRecord && firstRecord.groupName) ? firstRecord.groupName : (els.simpleGroupNameInput ? els.simpleGroupNameInput.value : "");
+  if (els.simpleGroupNameInput && document.activeElement !== els.simpleGroupNameInput) {
+    els.simpleGroupNameInput.value = groupNameVal;
+  }
+  if (els.advancedGroupNameInput && document.activeElement !== els.advancedGroupNameInput) {
+    els.advancedGroupNameInput.value = groupNameVal;
+  }
+  if (els.simpleGroupNamePreviewBadge) {
+    els.simpleGroupNamePreviewBadge.hidden = !settings.printGroupName;
+  }
+
+  // 宿泊情報 (Stay Info) Preview Chip
+  if (els.simpleStayInfoPreviewChip) {
+    const stayInfoText = (firstRecord && firstRecord.stayInfo) ? firstRecord.stayInfo : "";
+    if (stayInfoText) {
+      els.simpleStayInfoPreviewChip.textContent = stayInfoText;
+      els.simpleStayInfoPreviewChip.classList.add("has-value");
+    } else {
+      els.simpleStayInfoPreviewChip.textContent = "未読み込み";
+      els.simpleStayInfoPreviewChip.classList.remove("has-value");
+    }
+  }
+}
+
 function updateCleaningControls() {
   const stayEnabled = Boolean(settings.printStayInfo);
 
@@ -495,12 +559,31 @@ function updateCleaningControls() {
 
   getDatePickerConfigs().forEach((config) => {
     const enabled = stayEnabled && Boolean(settings[config.printKey]);
-    document.getElementById(config.panelId).hidden = !enabled;
-    document.getElementById(config.monthId).disabled = !enabled;
-    document.getElementById(config.clearButtonId).disabled = !enabled;
-    document.getElementById(config.selectedId).textContent = formatSelectedDates(settings[config.textKey]);
-    document.getElementById(config.previewId).textContent = enabled ? getDateInfoText(config) || "日付を選択" : "";
+    const panel = document.getElementById(config.panelId);
+    const monthInput = document.getElementById(config.monthId);
+    const clearBtn = document.getElementById(config.clearButtonId);
+    const selectedEl = document.getElementById(config.selectedId);
+    const previewEl = document.getElementById(config.previewId);
+
+    if (panel) panel.hidden = !enabled;
+    if (monthInput) monthInput.disabled = !enabled;
+    if (clearBtn) clearBtn.disabled = !enabled;
+    if (selectedEl) selectedEl.textContent = formatSelectedDates(settings[config.textKey]);
+
+    if (previewEl) {
+      const dates = parseDateInfoDates(settings[config.textKey]);
+      const prefix = config.label === "清掃" ? "清掃日：" : "部屋変更：";
+      if (enabled && dates.length) {
+        previewEl.textContent = `${prefix}${dates.join(", ")}`;
+        previewEl.classList.add("has-value");
+      } else {
+        previewEl.textContent = enabled ? "日付を選択" : "未選択";
+        previewEl.classList.remove("has-value");
+      }
+    }
   });
+
+  updatePreviewChips();
 }
 
 function getDatePickerConfigs() {
@@ -607,12 +690,13 @@ function toggleSavedDate(config, dateText) {
     dates.add(dateText);
   }
   const sortedDates = sortMonthDayDates([...dates]);
-  settings[config.textKey] = sortedDates.length ? `${config.label} ${sortedDates.join("、")}` : "";
+  const prefix = config.label === "清掃" ? "清掃日：" : "部屋変更：";
+  settings[config.textKey] = sortedDates.length ? `${prefix}${sortedDates.join("、")}` : "";
 }
 
 function parseDateInfoDates(text) {
   return String(text || "")
-    .replace(/^(清掃|R\/C|部屋変更)\s*/, "")
+    .replace(/^(清掃日：|清掃日:|清掃|部屋変更：|部屋変更:|R\/C|部屋変更)\s*/, "")
     .split(/[、,\s]+/)
     .map((date) => date.trim())
     .filter((date) => /^\d{1,2}\/\d{1,2}$/.test(date));
@@ -796,6 +880,10 @@ function parseSelectedSheet() {
       throw new Error("13行目以降に有効な部屋番号・宿泊者名データがありません。");
     }
 
+    const firstGroup = records.find((r) => r.groupName)?.groupName || "";
+    if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
+    if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
+
     renderTable();
     syncRangeInputs(true);
     document.getElementById("simpleNextUpload").disabled = false;
@@ -838,6 +926,10 @@ function loadCustomEntries() {
     return;
   }
 
+  const firstGroup = records.find((r) => r.groupName)?.groupName || "";
+  if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
+  if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
+
   renderTable();
   syncRangeInputs(true);
   document.getElementById("simpleNextUpload").disabled = false;
@@ -871,6 +963,10 @@ function loadSimpleCustomEntries() {
     setSimpleStatus("有効な直接入力データがありません。", true);
     return;
   }
+
+  const firstGroup = records.find((r) => r.groupName)?.groupName || "";
+  if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
+  if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
   renderTable();
   syncRangeInputs(true);
