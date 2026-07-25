@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
   rcInfoFontSize: 8,
   printGroupName: false,
   printStayInfo: false,
+  printStaySchedule: false,
   printCleaningInfo: false,
   cleaningInfoCustomText: "",
   printRcInfo: false,
@@ -43,12 +44,20 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260722-staydates3";
+const BUILD_VERSION = "20260725-font-copy-options1";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
 const MIN_NAME_FONT_SIZE_PT = 6.5;
 const PT_TO_MM = 0.352778;
+const FONT_SIZE_KEYS = [
+  "nameFontSize",
+  "roomFontSize",
+  "groupNameFontSize",
+  "stayInfoFontSize",
+  "cleaningInfoFontSize",
+  "rcInfoFontSize"
+];
 
 let settings = loadSettings();
 let records = [];
@@ -90,40 +99,50 @@ const els = {
   simpleNamePreviewChip: document.getElementById("simpleNamePreviewChip"),
   simpleRoomPreviewChip: document.getElementById("simpleRoomPreviewChip"),
   simpleStayInfoPreviewChip: document.getElementById("simpleStayInfoPreviewChip"),
+  staySchedulePreview: document.getElementById("staySchedulePreview"),
+  simpleAdditionalInfo: document.getElementById("simpleAdditionalInfo"),
+  advancedAdditionalInfo: document.getElementById("advancedAdditionalInfo"),
+  simpleStayInfoDetails: document.getElementById("simpleStayInfoDetails"),
+  advancedStayInfoDetails: document.getElementById("advancedStayInfoDetails"),
+  simpleAdditionalSummary: document.getElementById("simpleAdditionalSummary"),
+  advancedAdditionalSummary: document.getElementById("advancedAdditionalSummary"),
+  simpleStaySelectionSummary: document.getElementById("simpleStaySelectionSummary"),
+  advancedStaySelectionSummary: document.getElementById("advancedStaySelectionSummary"),
+  simpleLiveGroup: document.getElementById("simpleLiveGroup"),
+  simpleLiveStay: document.getElementById("simpleLiveStay"),
+  simpleLiveCleaning: document.getElementById("simpleLiveCleaning"),
+  simpleLiveRc: document.getElementById("simpleLiveRc"),
+  simpleLiveName: document.getElementById("simpleLiveName"),
+  simpleLiveRoom: document.getElementById("simpleLiveRoom"),
   rangeStart: document.getElementById("rangeStart"),
   rangeEnd: document.getElementById("rangeEnd"),
   buildVersion: document.getElementById("buildVersion")
 };
 
 const settingInputs = [
-  "globalOffsetX",
-  "globalOffsetY",
-  "nameX",
-  "nameY",
-  "roomX",
-  "roomY",
   "nameFontSize",
   "roomFontSize",
+  "groupNameFontSize",
+  "stayInfoFontSize",
+  "cleaningInfoFontSize",
+  "rcInfoFontSize",
   "printName",
   "printNameHonorific",
   "printRoom",
   "printGroupName",
   "printStayInfo",
+  "printStaySchedule",
   "printCleaningInfo",
-  "printRcInfo",
-  "rotate180"
+  "printRcInfo"
 ];
 
 const simplePositionInputMap = {
-  simpleGlobalOffsetX: "globalOffsetX",
-  simpleGlobalOffsetY: "globalOffsetY",
-  simpleNameX: "nameX",
-  simpleNameY: "nameY",
-  simpleRoomX: "roomX",
-  simpleRoomY: "roomY",
   simpleNameFontSize: "nameFontSize",
   simpleRoomFontSize: "roomFontSize",
-  simpleRotate180: "rotate180"
+  simpleGroupNameFontSize: "groupNameFontSize",
+  simpleStayInfoFontSize: "stayInfoFontSize",
+  simpleCleaningInfoFontSize: "cleaningInfoFontSize",
+  simpleRcInfoFontSize: "rcInfoFontSize"
 };
 
 init();
@@ -163,7 +182,7 @@ function init() {
       renderTable();
     });
   });
-  ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
+  ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintStaySchedule", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
       bindSettingsToForm();
@@ -207,6 +226,20 @@ function init() {
       bindCleaningSettingsToForm();
       renderTable();
     });
+    document.getElementById(config.openButtonId).addEventListener("click", () => {
+      openDatePickerModal(config.panelId);
+    });
+    document.getElementById(config.inputId).addEventListener("change", (event) => {
+      if (event.target.checked) openDatePickerModal(config.panelId);
+    });
+  });
+  document.querySelectorAll("[data-close-date-picker]").forEach((button) => {
+    button.addEventListener("click", () => closeDatePickerModal(button.dataset.closeDatePicker));
+  });
+  document.querySelectorAll(".date-picker-modal").forEach((dialog) => {
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
   });
   document.querySelectorAll('input[name="simpleCopyMode"], input[name="advancedCopyMode"]').forEach((input) => {
     input.addEventListener("input", () => {
@@ -218,6 +251,7 @@ function init() {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
       bindSettingsToForm();
+      updatePreviewChips();
     });
   });
   document.getElementById("simpleSaveSettings").addEventListener("click", saveSimpleSettings);
@@ -269,13 +303,29 @@ function showSimpleStep(step) {
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...DEFAULT_SETTINGS, ...(saved || {}) };
+    const migrated = { ...DEFAULT_SETTINGS, ...(saved || {}) };
+    if (saved && typeof saved.printStaySchedule !== "boolean") {
+      migrated.printStaySchedule = Boolean(saved.printStayInfo);
+    }
+    [
+      "globalOffsetX",
+      "globalOffsetY",
+      "nameX",
+      "nameY",
+      "roomX",
+      "roomY",
+      "rotate180"
+    ].forEach((key) => {
+      migrated[key] = DEFAULT_SETTINGS[key];
+    });
+    return migrated;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 
 function bindSettingsToForm() {
+  syncStayInfoMaster();
   settingInputs.forEach((key) => {
     const input = document.getElementById(key);
     if (input.type === "checkbox") {
@@ -284,17 +334,31 @@ function bindSettingsToForm() {
       input.value = settings[key];
     }
   });
+  if (settings.printGroupName || settings.printStayInfo) {
+    els.advancedAdditionalInfo.open = true;
+  }
+  if (settings.printStayInfo) {
+    els.advancedStayInfoDetails.open = true;
+  }
   updatePrintFieldControls();
 }
 
 function bindSimpleSettingsToForm() {
+  syncStayInfoMaster();
   document.getElementById("simplePrintName").checked = Boolean(settings.printName);
   document.getElementById("simplePrintNameHonorific").checked = Boolean(settings.printNameHonorific);
   document.getElementById("simplePrintRoom").checked = Boolean(settings.printRoom);
   document.getElementById("simplePrintGroupName").checked = Boolean(settings.printGroupName);
   document.getElementById("simplePrintStayInfo").checked = Boolean(settings.printStayInfo);
+  document.getElementById("simplePrintStaySchedule").checked = Boolean(settings.printStaySchedule);
   document.getElementById("simplePrintCleaningInfo").checked = Boolean(settings.printCleaningInfo);
   document.getElementById("simplePrintRcInfo").checked = Boolean(settings.printRcInfo);
+  if (settings.printGroupName || settings.printStayInfo) {
+    els.simpleAdditionalInfo.open = true;
+  }
+  if (settings.printStayInfo) {
+    els.simpleStayInfoDetails.open = true;
+  }
   bindCopyModeToForm();
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
@@ -433,6 +497,7 @@ function updateSettingsFromForm() {
     const input = document.getElementById(key);
     settings[key] = input.type === "checkbox" ? input.checked : Number(input.value);
   });
+  syncStayInfoMaster();
   const selected = document.querySelector('input[name="advancedCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
   updatePrintFieldControls();
@@ -444,13 +509,26 @@ function updateSettingsFromSimpleForm() {
   settings.printNameHonorific = document.getElementById("simplePrintNameHonorific").checked;
   settings.printRoom = document.getElementById("simplePrintRoom").checked;
   settings.printGroupName = document.getElementById("simplePrintGroupName").checked;
-  settings.printStayInfo = document.getElementById("simplePrintStayInfo").checked;
+  settings.printStaySchedule = document.getElementById("simplePrintStaySchedule").checked;
   settings.printCleaningInfo = document.getElementById("simplePrintCleaningInfo").checked;
   settings.printRcInfo = document.getElementById("simplePrintRcInfo").checked;
+  syncStayInfoMaster();
   const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
   updatePrintFieldControls();
   updateCleaningControls();
+}
+
+function syncStayInfoMaster() {
+  settings.printStayInfo = Boolean(
+    settings.printStaySchedule
+    || settings.printCleaningInfo
+    || settings.printRcInfo
+  );
+  ["simplePrintStayInfo", "printStayInfo"].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.checked = settings.printStayInfo;
+  });
 }
 
 function updateSettingsFromCustomForm(isSimple) {
@@ -529,45 +607,45 @@ function updatePreviewChips() {
     els.simpleGroupNamePreviewBadge.hidden = !settings.printGroupName;
   }
 
-  // 宿泊情報 (Stay Info) Preview Chip
+  // 宿泊日程 (Stay Schedule) Preview
+  const stayInfoText = (firstRecord && firstRecord.stayInfo) ? firstRecord.stayInfo : "";
   if (els.simpleStayInfoPreviewChip) {
-    const stayInfoText = (firstRecord && firstRecord.stayInfo) ? firstRecord.stayInfo : "";
     if (stayInfoText) {
-      els.simpleStayInfoPreviewChip.textContent = stayInfoText;
+      els.simpleStayInfoPreviewChip.textContent = `例: ${stayInfoText}`;
       els.simpleStayInfoPreviewChip.classList.add("has-value");
     } else {
-      els.simpleStayInfoPreviewChip.textContent = "未読み込み";
+      els.simpleStayInfoPreviewChip.textContent = "例: 7/7〜1泊";
       els.simpleStayInfoPreviewChip.classList.remove("has-value");
     }
   }
+  if (els.staySchedulePreview) {
+    els.staySchedulePreview.textContent = `例: ${stayInfoText || "7/7〜1泊"}`;
+  }
+
+  updateAdditionalInformationControls();
+  updateLivePrintPreview(firstRecord);
 }
 
 function updateCleaningControls() {
-  const stayEnabled = Boolean(settings.printStayInfo);
-
-  [
-    ["simpleStayInfoSubPanel", "simplePrintCleaningInfo", "simplePrintRcInfo"],
-    ["stayInfoSubPanel", "printCleaningInfo", "printRcInfo"]
-  ].forEach(([panelId, cleaningInputId, rcInputId]) => {
-    const panel = document.getElementById(panelId);
-    if (panel) panel.hidden = !stayEnabled;
-    [cleaningInputId, rcInputId].forEach((id) => {
-      const input = document.getElementById(id);
-      if (input) input.disabled = !stayEnabled;
-    });
-  });
+  syncStayInfoMaster();
 
   getDatePickerConfigs().forEach((config) => {
-    const enabled = stayEnabled && Boolean(settings[config.printKey]);
+    const enabled = Boolean(settings[config.printKey]);
     const panel = document.getElementById(config.panelId);
     const monthInput = document.getElementById(config.monthId);
     const clearBtn = document.getElementById(config.clearButtonId);
     const selectedEl = document.getElementById(config.selectedId);
     const previewEl = document.getElementById(config.previewId);
+    const openButton = document.getElementById(config.openButtonId);
 
     if (panel) panel.hidden = !enabled;
+    if (panel && !enabled && panel.open) panel.close();
     if (monthInput) monthInput.disabled = !enabled;
     if (clearBtn) clearBtn.disabled = !enabled;
+    if (openButton) {
+      openButton.hidden = !enabled;
+      openButton.disabled = !enabled;
+    }
     if (selectedEl) selectedEl.textContent = formatSelectedDates(settings[config.textKey]);
 
     if (previewEl) {
@@ -586,14 +664,141 @@ function updateCleaningControls() {
   updatePreviewChips();
 }
 
+function openDatePickerModal(panelId) {
+  const dialog = document.getElementById(panelId);
+  if (!dialog || dialog.hidden || dialog.open) return;
+  dialog.showModal();
+}
+
+function closeDatePickerModal(panelId) {
+  const dialog = document.getElementById(panelId);
+  if (dialog?.open) dialog.close();
+}
+
+function updateAdditionalInformationControls() {
+  const simpleGroupBody = document.getElementById("simpleGroupNameBody");
+  const advancedGroupBody = document.getElementById("advancedGroupNameBody");
+  if (simpleGroupBody) simpleGroupBody.hidden = !settings.printGroupName;
+  if (advancedGroupBody) advancedGroupBody.hidden = !settings.printGroupName;
+
+  const stayCount = [
+    settings.printStaySchedule,
+    settings.printCleaningInfo,
+    settings.printRcInfo
+  ].filter(Boolean).length;
+  const additionalCount = stayCount + (settings.printGroupName ? 1 : 0);
+  const staySummary = stayCount ? `${stayCount}項目選択` : "未選択";
+  const additionalSummary = additionalCount ? `${additionalCount}項目選択` : "未選択";
+
+  [els.simpleStaySelectionSummary, els.advancedStaySelectionSummary].forEach((element) => {
+    if (element) element.textContent = staySummary;
+  });
+  [els.simpleAdditionalSummary, els.advancedAdditionalSummary].forEach((element) => {
+    if (element) element.textContent = additionalSummary;
+  });
+}
+
+function updateLivePrintPreview(firstRecord) {
+  const record = firstRecord || {};
+  const previewRecord = {
+    ...record,
+    outputNames: record.outputNames?.length ? record.outputNames : ["山田 太郎"]
+  };
+  const printableNames = previewRecord.outputNames.map(formatGuestNameForPrint);
+  const nameLayout = getNameLayout(previewRecord);
+  const groupName = record.groupName || els.simpleGroupNameInput?.value || "東横商事 御一行様";
+  const stayInfo = record.stayInfo || "7/7〜1泊";
+  const room = record.room || "704";
+
+  setLivePreviewLine(els.simpleLiveGroup, settings.printGroupName, groupName);
+  positionLivePreviewLine(
+    els.simpleLiveGroup,
+    settings.groupNameX,
+    settings.groupNameY,
+    settings.groupNameFontSize
+  );
+  setLivePreviewLine(els.simpleLiveStay, settings.printStayInfo && settings.printStaySchedule, stayInfo);
+  positionLivePreviewLine(
+    els.simpleLiveStay,
+    settings.stayInfoX,
+    nameLayout.stayInfoY,
+    settings.stayInfoFontSize
+  );
+  setLivePreviewLine(
+    els.simpleLiveCleaning,
+    settings.printStayInfo && settings.printCleaningInfo,
+    settings.cleaningInfoCustomText || "清掃日：未設定"
+  );
+  positionLivePreviewLine(
+    els.simpleLiveCleaning,
+    settings.cleaningInfoX,
+    nameLayout.cleaningInfoY,
+    settings.cleaningInfoFontSize
+  );
+  setLivePreviewLine(
+    els.simpleLiveRc,
+    settings.printStayInfo && settings.printRcInfo,
+    settings.rcInfoCustomText || "部屋変更：未設定"
+  );
+  positionLivePreviewLine(
+    els.simpleLiveRc,
+    settings.rcInfoX,
+    nameLayout.rcInfoY,
+    settings.rcInfoFontSize
+  );
+  setLivePreviewLine(els.simpleLiveName, settings.printName, printableNames.join("\n"));
+  positionLivePreviewLine(
+    els.simpleLiveName,
+    settings.nameX,
+    nameLayout.firstNameY,
+    nameLayout.fontSize,
+    nameLayout.lineGap
+  );
+  setLivePreviewLine(els.simpleLiveRoom, settings.printRoom, room);
+  positionLivePreviewLine(
+    els.simpleLiveRoom,
+    settings.roomX,
+    settings.roomY,
+    settings.roomFontSize
+  );
+}
+
+function setLivePreviewLine(element, visible, text) {
+  if (!element) return;
+  element.hidden = !visible;
+  element.textContent = text;
+}
+
+function positionLivePreviewLine(element, xMm, yMm, fontPt, lineGapMm = null) {
+  if (!element) return;
+  const faceWidthMm = Number(settings.pageWidthMm) - Number(settings.printAreaStartX);
+  const faceStartX = (B6_WIDTH_MM - Number(settings.pageWidthMm)) / 2 + Number(settings.printAreaStartX);
+  const faceHeightMm = Number(settings.pageHeightMm);
+  const xPercent = ((printX(xMm) - faceStartX) / faceWidthMm) * 100;
+  const yPercent = (printY(yMm) / faceHeightMm) * 100;
+  const fontSizeCqw = (Number(fontPt) * PT_TO_MM / faceWidthMm) * 100;
+
+  element.style.left = `${xPercent}%`;
+  element.style.top = `${yPercent}%`;
+  element.style.fontSize = `${fontSizeCqw}cqw`;
+  element.style.transform = settings.rotate180
+    ? "translateY(-50%) rotate(180deg)"
+    : "translateY(-50%)";
+  element.style.lineHeight = lineGapMm
+    ? `${(Number(lineGapMm) / faceWidthMm) * 100}cqw`
+    : "1.15";
+}
+
 function getDatePickerConfigs() {
   return [
     {
       label: "清掃",
       maxDates: 6,
       printKey: "printCleaningInfo",
+      inputId: "printCleaningInfo",
       textKey: "cleaningInfoCustomText",
       panelId: "cleaningInfoPicker",
+      openButtonId: "openCleaningInfoPicker",
       monthId: "cleaningInfoMonth",
       calendarId: "cleaningInfoCalendar",
       clearButtonId: "clearCleaningInfoDates",
@@ -604,8 +809,10 @@ function getDatePickerConfigs() {
       label: "清掃",
       maxDates: 6,
       printKey: "printCleaningInfo",
+      inputId: "simplePrintCleaningInfo",
       textKey: "cleaningInfoCustomText",
       panelId: "simpleCleaningInfoPicker",
+      openButtonId: "simpleOpenCleaningInfoPicker",
       monthId: "simpleCleaningInfoMonth",
       calendarId: "simpleCleaningInfoCalendar",
       clearButtonId: "simpleClearCleaningInfoDates",
@@ -616,8 +823,10 @@ function getDatePickerConfigs() {
       label: "部屋変更",
       maxDates: 1,
       printKey: "printRcInfo",
+      inputId: "printRcInfo",
       textKey: "rcInfoCustomText",
       panelId: "rcInfoPicker",
+      openButtonId: "openRcInfoPicker",
       monthId: "rcInfoMonth",
       calendarId: "rcInfoCalendar",
       clearButtonId: "clearRcInfoDates",
@@ -628,8 +837,10 @@ function getDatePickerConfigs() {
       label: "部屋変更",
       maxDates: 1,
       printKey: "printRcInfo",
+      inputId: "simplePrintRcInfo",
       textKey: "rcInfoCustomText",
       panelId: "simpleRcInfoPicker",
+      openButtonId: "simpleOpenRcInfoPicker",
       monthId: "simpleRcInfoMonth",
       calendarId: "simpleRcInfoCalendar",
       clearButtonId: "simpleClearRcInfoDates",
@@ -783,29 +994,33 @@ function saveSimpleSettings() {
   updateSettingsFromSimplePositionForm();
   bindSettingsToForm();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-  setSimpleStatus("位置設定をブラウザに保存しました。");
+  setSimpleStatus("文字サイズをブラウザに保存しました。");
 }
 
 function resetSettings() {
-  settings = { ...DEFAULT_SETTINGS };
+  resetFontSizesToDefault();
   bindSettingsToForm();
   bindSimpleSettingsToForm();
-  bindCustomSettingsToForm();
-  bindCleaningSettingsToForm();
   bindSimplePositionSettingsToForm();
-  localStorage.removeItem(STORAGE_KEY);
-  setStatus("初期位置に戻しました。");
+  updatePreviewChips();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
+  setStatus("文字サイズを初期値に戻しました。");
 }
 
 function resetSimpleSettings() {
-  settings = { ...DEFAULT_SETTINGS };
+  resetFontSizesToDefault();
   bindSettingsToForm();
   bindSimpleSettingsToForm();
-  bindCustomSettingsToForm();
-  bindCleaningSettingsToForm();
   bindSimplePositionSettingsToForm();
-  localStorage.removeItem(STORAGE_KEY);
-  setSimpleStatus("位置設定を初期値に戻しました。");
+  updatePreviewChips();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
+  setSimpleStatus("文字サイズを初期値に戻しました。");
+}
+
+function resetFontSizesToDefault() {
+  FONT_SIZE_KEYS.forEach((key) => {
+    settings[key] = DEFAULT_SETTINGS[key];
+  });
 }
 
 function pickSettings(source) {
@@ -1500,7 +1715,7 @@ function buildPrintPage(record) {
   const groupName = settings.printGroupName && record.groupName
     ? `<p class="group-name">${escapeHtml(record.groupName)}</p>`
     : "";
-  const stayInfo = settings.printStayInfo && record.stayInfo
+  const stayInfo = settings.printStayInfo && settings.printStaySchedule && record.stayInfo
     ? `<p class="stay-info" style="top:${printY(nameLayout.stayInfoY)}mm;">${escapeHtml(record.stayInfo)}</p>`
     : "";
   const cleaningInfoText = getCleaningInfo(record);
