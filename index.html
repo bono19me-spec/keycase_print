@@ -369,17 +369,14 @@
 
         <details class="disclosure-panel compact-disclosure">
           <summary>
-            <span class="summary-copy"><strong>範囲を指定して印刷</strong><small>一部だけ印刷する場合</small></span>
+            <span class="summary-copy"><strong>選択したデータのみ印刷</strong><small>印刷したい行にチェック</small></span>
           </summary>
           <div class="disclosure-content">
-            <div class="range-grid">
-              <label>開始番号<input id="simpleRangeStart" type="number" min="1" value="1"></label>
-              <label>終了番号<input id="simpleRangeEnd" type="number" min="1" value="1"></label>
-            </div>
+            <div id="simplePrintSelection" class="print-selection-panel"></div>
             <button id="simpleRangePrint" type="button" class="secondary icon-button range-action-button"><svg
                 class="button-icon">
                 <use href="#icon-printer"></use>
-              </svg>指定範囲を印刷</button>
+              </svg>選択したデータを印刷</button>
           </div>
         </details>
 
@@ -646,17 +643,14 @@
 
           <details class="disclosure-panel compact-disclosure">
             <summary>
-              <span class="summary-copy"><strong>範囲を指定して印刷</strong><small>一部だけ印刷する場合</small></span>
+              <span class="summary-copy"><strong>選択したデータのみ印刷</strong><small>印刷したい行にチェック</small></span>
             </summary>
             <div class="disclosure-content">
-              <div class="range-grid">
-                <label>開始番号<input id="rangeStart" type="number" min="1" value="1"></label>
-                <label>終了番号<input id="rangeEnd" type="number" min="1" value="1"></label>
-              </div>
+              <div id="advancedPrintSelection" class="print-selection-panel"></div>
               <button id="rangePrint" type="button" class="secondary icon-button range-action-button"><svg
                   class="button-icon">
                   <use href="#icon-printer"></use>
-                </svg>指定範囲を印刷</button>
+                </svg>選択したデータを印刷</button>
             </div>
           </details>
 
@@ -677,6 +671,7 @@
           <table>
             <thead>
               <tr>
+                <th><label class="table-select-all"><input id="selectAllRows" type="checkbox">印刷</label></th>
                 <th>番号</th>
                 <th>Excel行</th>
                 <th>部屋番号</th>
@@ -691,7 +686,7 @@
             </thead>
             <tbody id="dataTable">
               <tr>
-                <td colspan="10" class="empty">Excelファイルを選択するとデータが表示されます。</td>
+                <td colspan="11" class="empty">Excelファイルを選択するとデータが表示されます。</td>
               </tr>
             </tbody>
           </table>
@@ -701,7 +696,7 @@
   </main>
 
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="app.js?v=20260725-font-copy-options1"></script>
+  <script src="app.js?v=20260728-row-selection-bold1"></script>
 </body>
 
 </html>

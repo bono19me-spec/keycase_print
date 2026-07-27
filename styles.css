@@ -508,7 +508,7 @@ select {
   position: absolute;
   margin: 0;
   color: #111;
-  font-weight: 400;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -521,6 +521,7 @@ select {
   font-size: 4.4cqw;
   line-height: 1.15;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .live-name {
@@ -1394,6 +1395,108 @@ button.secondary:hover {
   margin-top: 2px;
 }
 
+.print-selection-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.selection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.selection-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.text-button {
+  min-height: 30px;
+  border-color: #c6ced8;
+  background: #fff;
+  color: var(--accent);
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.text-button:hover {
+  background: var(--soft);
+}
+
+.print-selection-list {
+  display: grid;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.selection-row {
+  display: grid;
+  grid-template-columns: 18px 34px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.selection-row:last-child {
+  border-bottom: 0;
+}
+
+.selection-row input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.selection-index {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.selection-main {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selection-row small {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.compact-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+
+.table-select-all {
+  display: inline-grid;
+  grid-template-columns: 18px auto;
+  gap: 6px;
+  align-items: center;
+  min-height: 0;
+  padding: 0;
+  font-size: 12px;
+}
+
+.table-select-all input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.unselected-row {
+  opacity: 0.55;
+}
+
 .range-print-action:hover {
   border-color: var(--accent);
   background: var(--soft);
@@ -1435,7 +1538,7 @@ button.secondary:hover {
 
 table {
   width: 100%;
-  min-width: 760px;
+  min-width: 840px;
   border-collapse: collapse;
 }
 
@@ -1515,6 +1618,14 @@ td.empty {
 
   .panel-title-row {
     flex-direction: column;
+  }
+
+  .selection-row {
+    grid-template-columns: 18px 34px minmax(0, 1fr);
+  }
+
+  .selection-row small {
+    grid-column: 3;
   }
 
   .simple-topbar,

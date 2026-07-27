@@ -44,10 +44,11 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260725-font-copy-options1";
+const BUILD_VERSION = "20260728-row-selection-bold1";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
+const MIN_WRAPPED_TEXT_WIDTH_MM = 1;
 const MIN_NAME_FONT_SIZE_PT = 6.5;
 const PT_TO_MM = 0.352778;
 const FONT_SIZE_KEYS = [
@@ -64,6 +65,7 @@ let records = [];
 let warnings = [];
 let currentWorkbook = null;
 let simpleStep = 1;
+let selectedRecordIndexes = new Set();
 
 const els = {
   modeHome: document.getElementById("modeHome"),
@@ -77,8 +79,7 @@ const els = {
   simpleFileName: document.getElementById("simpleFileName"),
   simpleSheetSelect: document.getElementById("simpleSheetSelect"),
   simpleStatus: document.getElementById("simpleStatus"),
-  simpleRangeStart: document.getElementById("simpleRangeStart"),
-  simpleRangeEnd: document.getElementById("simpleRangeEnd"),
+  simplePrintSelection: document.getElementById("simplePrintSelection"),
   simpleCopyModePanel: document.getElementById("simpleCopyModePanel"),
   simpleCopyModeHint: document.getElementById("simpleCopyModeHint"),
   advancedCopyModePanel: document.getElementById("advancedCopyModePanel"),
@@ -114,8 +115,8 @@ const els = {
   simpleLiveRc: document.getElementById("simpleLiveRc"),
   simpleLiveName: document.getElementById("simpleLiveName"),
   simpleLiveRoom: document.getElementById("simpleLiveRoom"),
-  rangeStart: document.getElementById("rangeStart"),
-  rangeEnd: document.getElementById("rangeEnd"),
+  advancedPrintSelection: document.getElementById("advancedPrintSelection"),
+  selectAllRows: document.getElementById("selectAllRows"),
   buildVersion: document.getElementById("buildVersion")
 };
 
@@ -271,11 +272,15 @@ function init() {
   document.getElementById("simpleTestPrint").addEventListener("click", () => openPrintWindow("test"));
   document.getElementById("simpleRangePrint").addEventListener("click", () => openPrintWindow("range"));
   document.getElementById("simpleAllPrint").addEventListener("click", () => openPrintWindow("all"));
-  [els.rangeStart, els.rangeEnd, els.simpleRangeStart, els.simpleRangeEnd].forEach((input) => {
-    input.addEventListener("input", () => syncRangeInputs(false, input));
-    input.addEventListener("change", () => syncRangeInputs(false, input));
+  [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
+    panel.addEventListener("change", handlePrintSelectionChange);
+    panel.addEventListener("click", handlePrintSelectionAction);
   });
-  syncRangeInputs(true);
+  els.dataTable.addEventListener("change", handlePrintSelectionChange);
+  els.selectAllRows.addEventListener("change", () => {
+    setAllPrintSelection(els.selectAllRows.checked);
+    renderTable();
+  });
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
   updateCustomEntryHints();
@@ -442,54 +447,43 @@ function updateCopyModeVisibility() {
   }
 }
 
-function syncRangeInputs(resetToFullRange = false, changedInput = null) {
-  const max = Math.max(1, records.length);
-  const disabled = !records.length;
-
-  [els.rangeStart, els.simpleRangeStart].forEach((input) => {
-    input.min = 1;
-    input.max = max;
-    input.disabled = disabled;
-  });
-  [els.rangeEnd, els.simpleRangeEnd].forEach((input) => {
-    input.min = 1;
-    input.max = max;
-    input.disabled = disabled;
-  });
-
-  if (resetToFullRange || disabled) {
-    [els.rangeStart, els.simpleRangeStart].forEach((input) => {
-      input.value = 1;
-    });
-    [els.rangeEnd, els.simpleRangeEnd].forEach((input) => {
-      input.value = max;
-    });
-  }
-
-  syncRangePair(els.rangeStart, els.rangeEnd, max, changedInput);
-  syncRangePair(els.simpleRangeStart, els.simpleRangeEnd, max, changedInput);
+function resetPrintSelection() {
+  selectedRecordIndexes = new Set(records.map((record) => String(record.index)));
 }
 
-function syncRangePair(startInput, endInput, max, changedInput) {
-  let start = clampRangeValue(startInput.value, max);
-  let end = clampRangeValue(endInput.value, max);
-
-  if (start > end) {
-    if (changedInput === startInput) {
-      end = start;
-    } else {
-      start = end;
-    }
-  }
-
-  startInput.value = start;
-  endInput.value = end;
+function setAllPrintSelection(isSelected) {
+  selectedRecordIndexes = isSelected
+    ? new Set(records.map((record) => String(record.index)))
+    : new Set();
 }
 
-function clampRangeValue(value, max) {
-  const numeric = Number(value || 1);
-  if (!Number.isFinite(numeric)) return 1;
-  return Math.min(max, Math.max(1, Math.trunc(numeric)));
+function handlePrintSelectionChange(event) {
+  const checkbox = event.target.closest("[data-print-select-index]");
+  if (!checkbox) return;
+
+  const index = checkbox.dataset.printSelectIndex;
+  if (checkbox.checked) {
+    selectedRecordIndexes.add(index);
+  } else {
+    selectedRecordIndexes.delete(index);
+  }
+  renderTable();
+}
+
+function handlePrintSelectionAction(event) {
+  const button = event.target.closest("[data-selection-action]");
+  if (!button) return;
+
+  setAllPrintSelection(button.dataset.selectionAction === "all");
+  renderTable();
+}
+
+function isRecordSelected(record) {
+  return selectedRecordIndexes.has(String(record.index));
+}
+
+function getSelectedRecords() {
+  return records.filter(isRecordSelected);
 }
 
 function updateSettingsFromForm() {
@@ -772,15 +766,17 @@ function setLivePreviewLine(element, visible, text) {
 function positionLivePreviewLine(element, xMm, yMm, fontPt, lineGapMm = null) {
   if (!element) return;
   const faceWidthMm = Number(settings.pageWidthMm) - Number(settings.printAreaStartX);
-  const faceStartX = (B6_WIDTH_MM - Number(settings.pageWidthMm)) / 2 + Number(settings.printAreaStartX);
+  const faceStartX = getPrintFaceStartX();
   const faceHeightMm = Number(settings.pageHeightMm);
   const xPercent = ((printX(xMm) - faceStartX) / faceWidthMm) * 100;
   const yPercent = (printY(yMm) / faceHeightMm) * 100;
   const fontSizeCqw = (Number(fontPt) * PT_TO_MM / faceWidthMm) * 100;
+  const maxWidthCqw = (getPrintFaceRemainingWidth(xMm) / faceWidthMm) * 100;
 
   element.style.left = `${xPercent}%`;
   element.style.top = `${yPercent}%`;
   element.style.fontSize = `${fontSizeCqw}cqw`;
+  element.style.maxWidth = `${maxWidthCqw}cqw`;
   element.style.transform = settings.rotate180
     ? "translateY(-50%) rotate(180deg)"
     : "translateY(-50%)";
@@ -1053,6 +1049,7 @@ async function handleFile(event) {
     populateSheetSelect(null);
     records = [];
     warnings = [];
+    resetPrintSelection();
     renderTable();
     setStatus(error.message || "ファイルを読み込めません。", true);
     setSimpleStatus(error.message || "ファイルを読み込めません。", true);
@@ -1099,8 +1096,8 @@ function parseSelectedSheet() {
     if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
     if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
+    resetPrintSelection();
     renderTable();
-    syncRangeInputs(true);
     document.getElementById("simpleNextUpload").disabled = false;
     const summary = getRecordsSummary(records);
     setStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
@@ -1108,8 +1105,8 @@ function parseSelectedSheet() {
   } catch (error) {
     records = [];
     warnings = [];
+    resetPrintSelection();
     renderTable();
-    syncRangeInputs(true);
     document.getElementById("simpleNextUpload").disabled = true;
     setStatus(error.message || "シートを読み込めません。", true);
     setSimpleStatus(error.message || "シートを読み込めません。", true);
@@ -1135,8 +1132,8 @@ function loadCustomEntries() {
   populateSheetSelect(null);
 
   if (!records.length) {
+    resetPrintSelection();
     renderTable();
-    syncRangeInputs(true);
     setStatus("有効な直接入力データがありません。", true);
     return;
   }
@@ -1145,8 +1142,8 @@ function loadCustomEntries() {
   if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
   if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
+  resetPrintSelection();
   renderTable();
-  syncRangeInputs(true);
   document.getElementById("simpleNextUpload").disabled = false;
   const summary = getRecordsSummary(records);
   setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
@@ -1173,8 +1170,8 @@ function loadSimpleCustomEntries() {
   populateSheetSelect(null);
 
   if (!records.length) {
+    resetPrintSelection();
     renderTable();
-    syncRangeInputs(true);
     setSimpleStatus("有効な直接入力データがありません。", true);
     return;
   }
@@ -1183,8 +1180,8 @@ function loadSimpleCustomEntries() {
   if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
   if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
+  resetPrintSelection();
   renderTable();
-  syncRangeInputs(true);
   document.getElementById("simpleNextUpload").disabled = false;
   const summary = getRecordsSummary(records);
   setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
@@ -1448,11 +1445,17 @@ function getRcInfo(record) {
 }
 
 function renderTable() {
-  els.countBadge.textContent = getRecordsSummary(records);
+  const selectedRecords = getSelectedRecords();
+  els.countBadge.textContent = records.length
+    ? `${getRecordsSummary(records)} / 選択 ${selectedRecords.length}件`
+    : getRecordsSummary(records);
   els.warningBadge.textContent = warnings.length ? `警告 ${warnings.length}件` : "";
 
-  const rows = records.map((record) => `
-    <tr>
+  const rows = records.map((record) => {
+    const selected = isRecordSelected(record);
+    return `
+    <tr class="${selected ? "" : "unselected-row"}">
+      <td><input type="checkbox" data-print-select-index="${record.index}" ${selected ? "checked" : ""} aria-label="印刷対象"></td>
       <td>${record.index}</td>
       <td>${record.excelRow}</td>
       <td>${escapeHtml(record.room)}</td>
@@ -1464,10 +1467,12 @@ function renderTable() {
       <td>${escapeHtml(getPrintableNames(record).join(" / "))}</td>
       <td>使用</td>
     </tr>
-  `);
+  `;
+  });
 
   const warningRows = warnings.map((warning) => `
     <tr class="bad-row">
+      <td>-</td>
       <td>-</td>
       <td>${warning.excelRow}</td>
       <td>${escapeHtml(warning.room)}</td>
@@ -1481,9 +1486,59 @@ function renderTable() {
     </tr>
   `);
 
-  els.dataTable.innerHTML = rows.concat(warningRows).join("") || '<tr><td colspan="10" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>';
+  els.dataTable.innerHTML = rows.concat(warningRows).join("") || '<tr><td colspan="11" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>';
+  updatePrintSelectionPanels(selectedRecords);
+  updateTableSelectionControl(selectedRecords);
   updateCopyModeVisibility();
   updateCleaningControls();
+}
+
+function updatePrintSelectionPanels(selectedRecords = getSelectedRecords()) {
+  const panels = [els.simplePrintSelection, els.advancedPrintSelection].filter(Boolean);
+  const content = buildPrintSelectionPanelHtml(selectedRecords);
+  panels.forEach((panel) => {
+    panel.innerHTML = content;
+  });
+}
+
+function buildPrintSelectionPanelHtml(selectedRecords) {
+  if (!records.length) {
+    return '<p class="empty compact-empty">データを読み込むと、ここで印刷する行を選択できます。</p>';
+  }
+
+  const rows = records.map((record) => {
+    const selected = isRecordSelected(record);
+    const title = [
+      record.room ? `部屋 ${record.room}` : "",
+      record.rawName
+    ].filter(Boolean).join(" / ");
+    return `
+      <label class="selection-row ${selected ? "" : "unselected-row"}">
+        <input type="checkbox" data-print-select-index="${record.index}" ${selected ? "checked" : ""}>
+        <span class="selection-index">${record.index}</span>
+        <span class="selection-main">${escapeHtml(title || "印刷データ")}</span>
+        <small>Excel行 ${escapeHtml(record.excelRow)}</small>
+      </label>
+    `;
+  }).join("");
+
+  return `
+    <div class="selection-toolbar">
+      <strong>選択中 ${selectedRecords.length}件 / ${records.length}件</strong>
+      <span class="selection-actions">
+        <button type="button" class="text-button" data-selection-action="all">全て選択</button>
+        <button type="button" class="text-button" data-selection-action="none">全て解除</button>
+      </span>
+    </div>
+    <div class="print-selection-list">${rows}</div>
+  `;
+}
+
+function updateTableSelectionControl(selectedRecords) {
+  if (!els.selectAllRows) return;
+  els.selectAllRows.checked = records.length > 0 && selectedRecords.length === records.length;
+  els.selectAllRows.indeterminate = selectedRecords.length > 0 && selectedRecords.length < records.length;
+  els.selectAllRows.disabled = !records.length;
 }
 
 function ensureData() {
@@ -1497,19 +1552,14 @@ function getRecordsForMode(mode) {
   if (mode === "test") return [records[0]];
   if (mode === "all") return records;
 
-  syncRangeInputs();
-  const rangeStartInput = els.simpleApp.hidden ? els.rangeStart : els.simpleRangeStart;
-  const rangeEndInput = els.simpleApp.hidden ? els.rangeEnd : els.simpleRangeEnd;
-  const start = Math.max(1, Number(rangeStartInput.value || 1));
-  const end = Math.min(records.length, Number(rangeEndInput.value || records.length));
-
-  if (start > end) {
-    setStatus("開始番号が終了番号より大きくなっています。", true);
-    setSimpleStatus("開始番号が終了番号より大きくなっています。", true);
+  const selected = getSelectedRecords();
+  if (!selected.length) {
+    setStatus("印刷するデータを選択してください。", true);
+    setSimpleStatus("印刷するデータを選択してください。", true);
     return [];
   }
 
-  return records.slice(start - 1, end);
+  return selected;
 }
 
 function openPrintWindow(mode) {
@@ -1630,7 +1680,7 @@ function buildPrintHtml(selected) {
       color: #000;
       line-height: 1;
       white-space: nowrap;
-      font-weight: 400;
+      font-weight: 700;
     }
     .name {
       font-size: ${settings.nameFontSize}pt;
@@ -1657,19 +1707,21 @@ function buildPrintHtml(selected) {
     .cleaning-info {
       left: ${printX(settings.cleaningInfoX)}mm;
       top: ${printY(settings.cleaningInfoY)}mm;
-      max-width: 74mm;
+      max-width: ${getPrintFaceRemainingWidth(settings.cleaningInfoX)}mm;
       font-size: ${settings.cleaningInfoFontSize}pt;
       line-height: 1.15;
       white-space: normal;
+      overflow-wrap: anywhere;
       transform: ${printTransform()};
     }
     .rc-info {
       left: ${printX(settings.rcInfoX)}mm;
       top: ${printY(settings.rcInfoY)}mm;
-      max-width: 74mm;
+      max-width: ${getPrintFaceRemainingWidth(settings.rcInfoX)}mm;
       font-size: ${settings.rcInfoFontSize}pt;
       line-height: 1.15;
       white-space: normal;
+      overflow-wrap: anywhere;
       transform: ${printTransform()};
     }
     @media screen {
@@ -1808,6 +1860,22 @@ function printX(baseX) {
 function printY(baseY) {
   const y = Number(baseY) + Number(settings.globalOffsetY);
   return settings.rotate180 ? B6_HEIGHT_MM - y : y;
+}
+
+function getPrintFaceStartX() {
+  return (B6_WIDTH_MM - Number(settings.pageWidthMm)) / 2 + Number(settings.printAreaStartX);
+}
+
+function getPrintFaceEndX() {
+  return getPrintFaceStartX() + Number(settings.pageWidthMm) - Number(settings.printAreaStartX);
+}
+
+function getPrintFaceRemainingWidth(baseX) {
+  const x = Number(baseX) + Number(settings.globalOffsetX);
+  const width = settings.rotate180
+    ? x - getPrintFaceStartX()
+    : getPrintFaceEndX() - x;
+  return roundToTenth(Math.max(MIN_WRAPPED_TEXT_WIDTH_MM, width));
 }
 
 function printTransform() {
