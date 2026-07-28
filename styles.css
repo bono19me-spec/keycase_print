@@ -243,7 +243,7 @@ select {
   --step-soft: #f0effb;
 }
 
-.simple-step > * {
+.simple-step>* {
   position: relative;
 }
 
@@ -347,8 +347,8 @@ select {
   background: #fff;
 }
 
-.disclosure-panel > summary,
-.nested-disclosure > summary,
+.disclosure-panel>summary,
+.nested-disclosure>summary,
 .data-summary {
   display: flex;
   gap: 12px;
@@ -359,14 +359,14 @@ select {
   list-style: none;
 }
 
-.disclosure-panel > summary::-webkit-details-marker,
-.nested-disclosure > summary::-webkit-details-marker,
+.disclosure-panel>summary::-webkit-details-marker,
+.nested-disclosure>summary::-webkit-details-marker,
 .data-summary::-webkit-details-marker {
   display: none;
 }
 
-.disclosure-panel > summary::after,
-.nested-disclosure > summary::after {
+.disclosure-panel>summary::after,
+.nested-disclosure>summary::after {
   content: "›";
   flex: 0 0 auto;
   color: var(--muted);
@@ -376,13 +376,13 @@ select {
   transition: transform 0.15s ease;
 }
 
-.disclosure-panel[open] > summary::after,
-.nested-disclosure[open] > summary::after {
+.disclosure-panel[open]>summary::after,
+.nested-disclosure[open]>summary::after {
   transform: rotate(-90deg);
 }
 
-.disclosure-panel[open] > summary,
-.nested-disclosure[open] > summary {
+.disclosure-panel[open]>summary,
+.nested-disclosure[open]>summary {
   border-bottom: 1px solid var(--line);
   background: #f8fafb;
 }
@@ -435,7 +435,7 @@ select {
   border-bottom: 0;
 }
 
-.compact-disclosure > summary {
+.compact-disclosure>summary {
   min-height: 48px;
 }
 
@@ -615,8 +615,8 @@ select {
   font-weight: 900;
 }
 
-.control-grid > .stay-menu-heading,
-.control-grid > .stay-sub-settings {
+.control-grid>.stay-menu-heading,
+.control-grid>.stay-sub-settings {
   grid-column: 1 / -1;
 }
 
@@ -827,14 +827,14 @@ select {
   background: #fff;
 }
 
-.date-picker-panel > summary {
+.date-picker-panel>summary {
   cursor: pointer;
   color: var(--accent);
   font-size: 12px;
   font-weight: 800;
 }
 
-.date-picker-panel[open] > summary {
+.date-picker-panel[open]>summary {
   margin-bottom: 8px;
 }
 
@@ -1153,14 +1153,14 @@ h2 {
   padding-top: 10px;
 }
 
-.secondary-details > summary {
+.secondary-details>summary {
   cursor: pointer;
   color: var(--accent);
   font-size: 13px;
   font-weight: 800;
 }
 
-.secondary-details[open] > summary {
+.secondary-details[open]>summary {
   margin-bottom: 10px;
 }
 
@@ -1199,7 +1199,7 @@ h2 {
   margin-bottom: 12px;
 }
 
-.custom-print-options > .checkbox-row {
+.custom-print-options>.checkbox-row {
   min-height: 46px;
   padding: 10px 12px;
   border: 1px solid var(--line);
@@ -1390,6 +1390,34 @@ button.secondary:hover {
   font-size: 13px;
 }
 
+.print-selection-disclosure {
+  border-color: #5d5a9c;
+  background: #fafafe;
+}
+
+.print-selection-disclosure[open]>summary {
+  background: #f0effb;
+  border-bottom-color: #5d5a9c;
+}
+
+.print-selection-disclosure summary strong {
+  color: #4a4785;
+}
+
+.range-action-button {
+  background: #5d5a9c;
+  border-color: #5d5a9c;
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 2px 4px rgba(93, 90, 156, 0.2);
+}
+
+.range-action-button:hover {
+  background: #4a4785 !important;
+  border-color: #4a4785 !important;
+  color: #fff !important;
+}
+
 .range-action-button {
   justify-self: end;
   margin-top: 2px;
@@ -1569,6 +1597,7 @@ td.empty {
 }
 
 @media (max-width: 900px) {
+
   .workspace,
   .workspace.lower {
     grid-template-columns: 1fr;
