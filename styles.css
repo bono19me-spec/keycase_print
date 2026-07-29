@@ -973,8 +973,31 @@ select {
   grid-column: 1 / -1;
 }
 
-.copy-mode-panel strong {
-  color: #21313d;
+.option-group-label {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a5c6a;
+}
+
+.option-group-label {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.copy-mode-panel #simpleCopyModeRow,
+.copy-mode-panel #advancedCopyModeRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed #b9d4de;
 }
 
 .radio-row {

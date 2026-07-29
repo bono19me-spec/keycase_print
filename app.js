@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   printRcInfo: false,
   rcInfoCustomText: "",
   printCopyMode: "room",
+  printOrder: "load",
   globalOffsetX: 0,
   globalOffsetY: 0,
   rotate180: false,
@@ -44,7 +45,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260728-row-selection-bold1";
+const BUILD_VERSION = "20260728-print-order2";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -80,9 +81,9 @@ const els = {
   simpleSheetSelect: document.getElementById("simpleSheetSelect"),
   simpleStatus: document.getElementById("simpleStatus"),
   simplePrintSelection: document.getElementById("simplePrintSelection"),
-  simpleCopyModePanel: document.getElementById("simpleCopyModePanel"),
+  simplePrintOptionsPanel: document.getElementById("simplePrintOptionsPanel"),
   simpleCopyModeHint: document.getElementById("simpleCopyModeHint"),
-  advancedCopyModePanel: document.getElementById("advancedCopyModePanel"),
+  advancedPrintOptionsPanel: document.getElementById("advancedPrintOptionsPanel"),
   advancedCopyModeHint: document.getElementById("advancedCopyModeHint"),
   status: document.getElementById("status"),
   dataTable: document.getElementById("dataTable"),
@@ -158,7 +159,10 @@ function init() {
   showMode("home");
   showSimpleStep(1);
 
-  document.getElementById("startSimple").addEventListener("click", () => showMode("simple"));
+  document.getElementById("startSimple").addEventListener("click", () => {
+    showSimpleStep(1);
+    showMode("simple");
+  });
   document.getElementById("startAdvanced").addEventListener("click", () => showMode("advanced"));
   document.getElementById("simpleBackHome").addEventListener("click", () => showMode("home"));
   document.getElementById("advancedBackHome").addEventListener("click", () => showMode("home"));
@@ -248,6 +252,13 @@ function init() {
       bindCopyModeToForm();
     });
   });
+  document.querySelectorAll('input[name="simplePrintOrder"], input[name="advancedPrintOrder"]').forEach((input) => {
+    input.addEventListener("input", () => {
+      updatePrintOrderFromForm(input.value);
+      bindPrintOrderToForm();
+      updatePrintSelectionPanels();
+    });
+  });
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
@@ -291,6 +302,7 @@ function showMode(mode) {
   els.simpleApp.hidden = mode !== "simple";
   els.advancedApp.hidden = mode !== "advanced";
   updateCopyModeVisibility();
+  if (mode === "advanced") updatePrintSelectionPanels();
 }
 
 function showSimpleStep(step) {
@@ -303,6 +315,10 @@ function showSimpleStep(step) {
     dot.classList.toggle("active", dotStep === step);
     dot.classList.toggle("done", dotStep < step);
   });
+  if (step === 4) {
+    updateCopyModeVisibility();
+    updatePrintSelectionPanels();
+  }
 }
 
 function loadSettings() {
@@ -365,6 +381,7 @@ function bindSimpleSettingsToForm() {
     els.simpleStayInfoDetails.open = true;
   }
   bindCopyModeToForm();
+  bindPrintOrderToForm();
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
 }
@@ -410,8 +427,19 @@ function bindCopyModeToForm() {
   });
 }
 
+function bindPrintOrderToForm() {
+  const order = settings.printOrder === "room" ? "room" : "load";
+  document.querySelectorAll('input[name="simplePrintOrder"], input[name="advancedPrintOrder"]').forEach((input) => {
+    input.checked = input.value === order;
+  });
+}
+
 function updateCopyModeFromForm(value) {
   settings.printCopyMode = value === "guest" ? "guest" : "room";
+}
+
+function updatePrintOrderFromForm(value) {
+  settings.printOrder = value === "room" ? "room" : "load";
 }
 
 function updateCopyModeFromActiveForm() {
@@ -422,6 +450,38 @@ function updateCopyModeFromActiveForm() {
   if (selected) updateCopyModeFromForm(selected.value);
 }
 
+function updatePrintOrderFromActiveForm() {
+  const selector = els.simpleApp.hidden
+    ? 'input[name="advancedPrintOrder"]:checked'
+    : 'input[name="simplePrintOrder"]:checked';
+  const selected = document.querySelector(selector);
+  if (selected) updatePrintOrderFromForm(selected.value);
+}
+
+function compareRoomNumbers(a, b) {
+  const roomA = String(a.room || "");
+  const roomB = String(b.room || "");
+  const numA = Number(roomA);
+  const numB = Number(roomB);
+  if (roomA !== "" && roomB !== "" && !Number.isNaN(numA) && !Number.isNaN(numB)) {
+    return numA - numB;
+  }
+  return roomA.localeCompare(roomB, "ja", { numeric: true });
+}
+
+function sortRecordsForPrint(list) {
+  if (settings.printOrder !== "room") return list;
+  return [...list].sort((a, b) => {
+    const roomCompare = compareRoomNumbers(a, b);
+    if (roomCompare !== 0) return roomCompare;
+    return a.index - b.index;
+  });
+}
+
+function getRecordsInDisplayOrder() {
+  return sortRecordsForPrint(records);
+}
+
 function getMultiOccupancySummary() {
   const multiRooms = records.filter((record) => record.outputNames.length > 1);
   const extraCards = multiRooms.reduce((sum, record) => sum + record.outputNames.length - 1, 0);
@@ -430,21 +490,24 @@ function getMultiOccupancySummary() {
 
 function updateCopyModeVisibility() {
   const { multiRooms, extraCards } = getMultiOccupancySummary();
+  const hasRecords = records.length > 0;
   const hasMultiRooms = multiRooms.length > 0;
   const hint = hasMultiRooms
     ? `2名以上の部屋が${multiRooms.length}室あります。人数分の場合は追加で${extraCards}枚印刷されます。`
     : "";
 
-  [els.simpleCopyModePanel, els.advancedCopyModePanel].forEach((panel) => {
-    panel.hidden = !hasMultiRooms;
+  [els.simplePrintOptionsPanel, els.advancedPrintOptionsPanel].forEach((panel) => {
+    if (panel) panel.hidden = !hasRecords;
   });
+
+  // 印刷枚数セクション：1室1人のみの場合は非表示
+  ["simpleCopyModeRow", "advancedCopyModeRow"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !hasMultiRooms;
+  });
+
   els.simpleCopyModeHint.textContent = hint;
   els.advancedCopyModeHint.textContent = hint;
-
-  if (!hasMultiRooms) {
-    settings.printCopyMode = "room";
-    bindCopyModeToForm();
-  }
 }
 
 function resetPrintSelection() {
@@ -467,7 +530,31 @@ function handlePrintSelectionChange(event) {
   } else {
     selectedRecordIndexes.delete(index);
   }
-  renderTable();
+
+  // スクロール位置を維持するため、チェックボックス変更時はDOMを全再描画せず
+  // 対象行のCSS更新とツールバーカウントのみ更新する
+  const selectedRecords = getSelectedRecords();
+
+  // 全ての選択リストパネルの行スタイルとツールバーを軽量更新
+  [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
+    if (!panel) return;
+    // 行のunselected-rowクラスを更新
+    panel.querySelectorAll("[data-print-select-index]").forEach((cb) => {
+      const row = cb.closest(".selection-row");
+      if (!row) return;
+      const isSelected = selectedRecordIndexes.has(cb.dataset.printSelectIndex);
+      cb.checked = isSelected;
+      row.classList.toggle("unselected-row", !isSelected);
+    });
+    // ツールバーのカウント表示を更新
+    const countEl = panel.querySelector(".selection-toolbar strong");
+    if (countEl) countEl.textContent = `選択中 ${selectedRecords.length}件 / ${records.length}件`;
+  });
+
+  // dataTableのチェックボックスから来た場合はテーブル全体の選択状態を更新
+  if (event.target.closest("#dataTable") || event.currentTarget === els.dataTable) {
+    updateTableSelectionControl(selectedRecords);
+  }
 }
 
 function handlePrintSelectionAction(event) {
@@ -494,6 +581,8 @@ function updateSettingsFromForm() {
   syncStayInfoMaster();
   const selected = document.querySelector('input[name="advancedCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
+  const printOrder = document.querySelector('input[name="advancedPrintOrder"]:checked');
+  if (printOrder) settings.printOrder = printOrder.value;
   updatePrintFieldControls();
   updateCleaningControls();
 }
@@ -509,6 +598,8 @@ function updateSettingsFromSimpleForm() {
   syncStayInfoMaster();
   const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
   if (selected) settings.printCopyMode = selected.value;
+  const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
+  if (printOrder) settings.printOrder = printOrder.value;
   updatePrintFieldControls();
   updateCleaningControls();
 }
@@ -980,6 +1071,7 @@ function validateRequiredPrintField() {
 function saveSettings() {
   updateSettingsFromForm();
   updateCopyModeFromActiveForm();
+  updatePrintOrderFromActiveForm();
   bindSimplePositionSettingsToForm();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
   setStatus("設定をブラウザに保存しました。");
@@ -987,6 +1079,7 @@ function saveSettings() {
 
 function saveSimpleSettings() {
   updateSettingsFromSimpleForm();
+  updatePrintOrderFromActiveForm();
   updateSettingsFromSimplePositionForm();
   bindSettingsToForm();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
@@ -1025,6 +1118,7 @@ function pickSettings(source) {
     return picked;
   }, {
     printCopyMode: source.printCopyMode,
+    printOrder: source.printOrder === "room" ? "room" : "load",
     cleaningInfoCustomText: source.cleaningInfoCustomText,
     rcInfoCustomText: source.rcInfoCustomText
   });
@@ -1061,8 +1155,8 @@ function populateSheetSelect(workbook) {
   [els.sheetSelect, els.simpleSheetSelect].forEach((select) => {
     select.disabled = !sheetNames.length;
     select.innerHTML = sheetNames.length
-    ? sheetNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
-    : '<option value="">Excelファイルを選択してください</option>';
+      ? sheetNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
+      : '<option value="">Excelファイルを選択してください</option>';
 
     if (sheetNames.length) {
       select.value = sheetNames.includes(SHEET_NAME) ? SHEET_NAME : sheetNames[0];
@@ -1506,7 +1600,8 @@ function buildPrintSelectionPanelHtml(selectedRecords) {
     return '<p class="empty compact-empty">データを読み込むと、ここで印刷する行を選択できます。</p>';
   }
 
-  const rows = records.map((record) => {
+  const orderedRecords = getRecordsInDisplayOrder();
+  const rows = orderedRecords.map((record, position) => {
     const selected = isRecordSelected(record);
     const title = [
       record.room ? `部屋 ${record.room}` : "",
@@ -1515,7 +1610,7 @@ function buildPrintSelectionPanelHtml(selectedRecords) {
     return `
       <label class="selection-row ${selected ? "" : "unselected-row"}">
         <input type="checkbox" data-print-select-index="${record.index}" ${selected ? "checked" : ""}>
-        <span class="selection-index">${record.index}</span>
+        <span class="selection-index">${position + 1}</span>
         <span class="selection-main">${escapeHtml(title || "印刷データ")}</span>
         <small>Excel行 ${escapeHtml(record.excelRow)}</small>
       </label>
@@ -1549,8 +1644,11 @@ function ensureData() {
 }
 
 function getRecordsForMode(mode) {
-  if (mode === "test") return [records[0]];
-  if (mode === "all") return records;
+  if (mode === "test") {
+    const sorted = sortRecordsForPrint(records);
+    return sorted.length ? [sorted[0]] : [];
+  }
+  if (mode === "all") return sortRecordsForPrint(records);
 
   const selected = getSelectedRecords();
   if (!selected.length) {
@@ -1559,7 +1657,7 @@ function getRecordsForMode(mode) {
     return [];
   }
 
-  return selected;
+  return sortRecordsForPrint(selected);
 }
 
 function openPrintWindow(mode) {
@@ -1572,6 +1670,8 @@ function openPrintWindow(mode) {
     updateSettingsFromSimplePositionForm();
     bindSettingsToForm();
   }
+  updateCopyModeFromActiveForm();
+  updatePrintOrderFromActiveForm();
   if (!validateRequiredPrintField()) return;
 
   const selected = getRecordsForMode(mode);
