@@ -710,7 +710,26 @@
     </section>
   </main>
 
+  <dialog id="recordEditModal" class="date-picker-modal record-edit-modal">
+    <div class="modal-heading">
+      <span class="summary-copy"><strong>データ詳細修正</strong><small>該当データの印刷内容を個別に修正します</small></span>
+      <button type="button" class="modal-close-button secondary" data-close-record-edit>×</button>
+    </div>
+    <div class="edit-modal-grid">
+      <label>部屋番号<input id="editRecRoom" type="text"></label>
+      <label>宿泊者名<input id="editRecNames" type="text"></label>
+      <label>団体名<input id="editRecGroupName" type="text"></label>
+      <label>宿泊日程<input id="editRecStayInfo" type="text"></label>
+      <label>清掃情報<input id="editRecCleaning" type="text" placeholder="例: 清掃日：7/8、7/10"></label>
+      <label>部屋変更情報<input id="editRecRc" type="text" placeholder="例: 部屋変更：7/9"></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="saveRecordEdit" class="icon-button">保存</button>
+    </div>
+  </dialog>
+
   <script src="vendor/xlsx.full.min.js"></script>
+
   <script src="app.js?v=20260728-print-order2"></script>
 </body>
 

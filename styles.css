@@ -1486,15 +1486,39 @@ button.secondary:hover {
   border-radius: 8px;
 }
 
-.selection-row {
+.record-edit-modal {
+  width: min(500px, calc(100vw - 28px));
+}
+
+.edit-modal-grid {
   display: grid;
-  grid-template-columns: 18px 34px minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-  min-height: 40px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.edit-trigger-button {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: var(--muted);
+}
+
+.edit-trigger-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--soft);
+}
+
+.selection-row {
+  grid-template-columns: 18px 34px minmax(0, 1fr) auto auto;
 }
 
 .selection-row:last-child {

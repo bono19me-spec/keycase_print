@@ -5,11 +5,11 @@ const DEFAULT_SETTINGS = {
   nameX: 98,
   nameY: 70,
   nameAlign: "left",
-  nameFontSize: 10,
+  nameFontSize: 12,
   roomX: 98,
   roomY: 88,
   roomAlign: "left",
-  roomFontSize: 18,
+  roomFontSize: 20,
   printName: true,
   printNameHonorific: true,
   printRoom: true,
@@ -19,13 +19,13 @@ const DEFAULT_SETTINGS = {
   groupNameFontSize: 9,
   stayInfoX: 98,
   stayInfoY: 44,
-  stayInfoFontSize: 9,
+  stayInfoFontSize: 11,
   cleaningInfoX: 98,
   cleaningInfoY: 52,
-  cleaningInfoFontSize: 8,
+  cleaningInfoFontSize: 11,
   rcInfoX: 98,
   rcInfoY: 60,
-  rcInfoFontSize: 8,
+  rcInfoFontSize: 11,
   printGroupName: false,
   printStayInfo: false,
   printStaySchedule: false,
@@ -117,6 +117,8 @@ const els = {
   simpleLiveName: document.getElementById("simpleLiveName"),
   simpleLiveRoom: document.getElementById("simpleLiveRoom"),
   advancedPrintSelection: document.getElementById("advancedPrintSelection"),
+  recordEditModal: document.getElementById("recordEditModal"),
+  saveRecordEdit: document.getElementById("saveRecordEdit"),
   selectAllRows: document.getElementById("selectAllRows"),
   buildVersion: document.getElementById("buildVersion")
 };
@@ -286,7 +288,10 @@ function init() {
   [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
     panel.addEventListener("change", handlePrintSelectionChange);
     panel.addEventListener("click", handlePrintSelectionAction);
+    panel.addEventListener("click", handleEditButtonClick);
   });
+  els.recordEditModal.querySelector("[data-close-record-edit]").addEventListener("click", () => els.recordEditModal.close());
+  els.saveRecordEdit.addEventListener("click", saveIndividualRecordEdit);
   els.dataTable.addEventListener("change", handlePrintSelectionChange);
   els.selectAllRows.addEventListener("change", () => {
     setAllPrintSelection(els.selectAllRows.checked);
@@ -535,10 +540,12 @@ function handlePrintSelectionChange(event) {
   // 対象行のCSS更新とツールバーカウントのみ更新する
   const selectedRecords = getSelectedRecords();
 
-  // 全ての選択リストパネルの行スタイルとツールバーを軽量更新
+
+  // 全ての選択リストパネル의 行スタイルとツールバー를 軽量更新
   [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
     if (!panel) return;
-    // 行のunselected-rowクラスを更新
+
+    // 行のunselected-rowクラス를 更新
     panel.querySelectorAll("[data-print-select-index]").forEach((cb) => {
       const row = cb.closest(".selection-row");
       if (!row) return;
@@ -546,12 +553,14 @@ function handlePrintSelectionChange(event) {
       cb.checked = isSelected;
       row.classList.toggle("unselected-row", !isSelected);
     });
-    // ツールバーのカウント表示を更新
+
+    // ツールバー의 カウント表示를 更新
     const countEl = panel.querySelector(".selection-toolbar strong");
     if (countEl) countEl.textContent = `選択中 ${selectedRecords.length}件 / ${records.length}件`;
   });
 
-  // dataTableのチェックボックスから来た場合はテーブル全体の選択状態を更新
+
+  // dataTable의 チェックボックスから来た場合はテーブル全体の選択状態を更新
   if (event.target.closest("#dataTable") || event.currentTarget === els.dataTable) {
     updateTableSelectionControl(selectedRecords);
   }
@@ -1528,12 +1537,76 @@ function getRecordsSummary(list) {
   return guestTotal ? `${list.length}${unit} / ${guestTotal}名` : `${list.length}${unit}`;
 }
 
+let editingRecordIndex = null;
+
+function handleEditButtonClick(event) {
+  const button = event.target.closest("[data-edit-index]");
+  if (!button) return;
+
+  const index = Number(button.dataset.editIndex);
+  const record = records.find((r) => r.index === index);
+  if (!record) return;
+
+  editingRecordIndex = index;
+
+  // 입력 필드와 라벨 컨테이너들을 가져옴
+  const fields = [
+    { id: "editRecRoom", active: settings.printRoom },
+    { id: "editRecNames", active: settings.printName },
+    { id: "editRecGroupName", active: settings.printGroupName },
+    { id: "editRecStayInfo", active: settings.printStayInfo && settings.printStaySchedule },
+    { id: "editRecCleaning", active: settings.printStayInfo && settings.printCleaningInfo },
+    { id: "editRecRc", active: settings.printStayInfo && settings.printRcInfo }
+  ];
+
+  fields.forEach(f => {
+    const input = document.getElementById(f.id);
+    const container = input.closest("label");
+    input.disabled = !f.active;
+    if (container) {
+      container.style.opacity = f.active ? "1" : "0.5";
+      container.style.background = f.active ? "transparent" : "#f5f5f5";
+    }
+  });
+
+  document.getElementById("editRecRoom").value = record.room || "";
+  document.getElementById("editRecNames").value = record.outputNames.join("/");
+  document.getElementById("editRecGroupName").value = record.groupName || "";
+  document.getElementById("editRecStayInfo").value = record.stayInfo || "";
+  document.getElementById("editRecCleaning").value = record.customCleaning || getCleaningInfo(record) || "";
+  document.getElementById("editRecRc").value = record.customRc || getRcInfo(record) || "";
+
+  els.recordEditModal.showModal();
+}
+
+function saveIndividualRecordEdit() {
+  const record = records.find((r) => r.index === editingRecordIndex);
+  if (!record) return;
+
+  if (!document.getElementById("editRecRoom").disabled) record.room = document.getElementById("editRecRoom").value.trim();
+  if (!document.getElementById("editRecNames").disabled) {
+    const namesText = document.getElementById("editRecNames").value.trim();
+    record.outputNames = namesText.split("/").map((n) => n.trim()).filter(Boolean);
+    record.rawName = record.outputNames.join(" / ");
+    record.outputName = record.rawName;
+  }
+  if (!document.getElementById("editRecGroupName").disabled) record.groupName = document.getElementById("editRecGroupName").value.trim();
+  if (!document.getElementById("editRecStayInfo").disabled) record.stayInfo = document.getElementById("editRecStayInfo").value.trim();
+  if (!document.getElementById("editRecCleaning").disabled) record.customCleaning = document.getElementById("editRecCleaning").value.trim();
+  if (!document.getElementById("editRecRc").disabled) record.customRc = document.getElementById("editRecRc").value.trim();
+
+  renderTable();
+  els.recordEditModal.close();
+}
+
 function getCleaningInfo(record) {
+  if (record.customCleaning !== undefined) return record.customCleaning;
   if (!settings.printStayInfo || !settings.printCleaningInfo) return "";
   return settings.cleaningInfoCustomText.trim();
 }
 
 function getRcInfo(record) {
+  if (record.customRc !== undefined) return record.customRc;
   if (!settings.printStayInfo || !settings.printRcInfo) return "";
   return settings.rcInfoCustomText.trim();
 }
@@ -1611,8 +1684,9 @@ function buildPrintSelectionPanelHtml(selectedRecords) {
       <label class="selection-row ${selected ? "" : "unselected-row"}">
         <input type="checkbox" data-print-select-index="${record.index}" ${selected ? "checked" : ""}>
         <span class="selection-index">${position + 1}</span>
-        <span class="selection-main">${escapeHtml(title || "印刷データ")}</span>
+        <span class="selection-main">${escapeHtml(title || "印刷 データ")}</span>
         <small>Excel行 ${escapeHtml(record.excelRow)}</small>
+        <button type="button" class="secondary edit-trigger-button" data-edit-index="${record.index}">修正</button>
       </label>
     `;
   }).join("");
@@ -1902,22 +1976,33 @@ function getNameLayout(record) {
   const fontSize = getAutoNameFontSize(names);
   const fontHeightMm = fontSize * PT_TO_MM;
   const lineGap = roundToTenth(Math.max(settings.nameLineGap, fontHeightMm * 1.35));
-  const extraLines = Math.max(0, count - 2);
-  const baseShift = extraLines * lineGap * 0.55;
-  const projectedLastNameY = Number(settings.nameY) - baseShift + (count - 1) * lineGap;
-  const roomClearanceY = settings.printRoom
-    ? Number(settings.roomY) - Number(settings.roomFontSize) * PT_TO_MM * 0.85
-    : Number(settings.roomY);
-  const clearanceShift = Math.max(0, projectedLastNameY - roomClearanceY);
-  const upwardShift = roundToTenth(baseShift + clearanceShift);
 
+
+
+
+
+
+
+
+
+
+  const safeGap = 2; // 최소 안전 거리 2mm
+
+  // 방 번호와 성함 사이 거리 확보
+  const projectedLastNameY = Number(settings.nameY) + (count - 1) * lineGap;
+  const roomTopY = Number(settings.roomY) - (Number(settings.roomFontSize) * PT_TO_MM);
+  const shiftUp = Math.max(0, (projectedLastNameY + safeGap) - roomTopY);
   return {
     fontSize,
     lineGap,
-    firstNameY: Number(settings.nameY) - upwardShift,
-    stayInfoY: Number(settings.stayInfoY) - upwardShift,
-    cleaningInfoY: Number(settings.cleaningInfoY) - upwardShift,
-    rcInfoY: Number(settings.rcInfoY) - upwardShift
+
+
+
+
+    firstNameY: Number(settings.nameY) - shiftUp,
+    stayInfoY: Number(settings.stayInfoY) - shiftUp,
+    cleaningInfoY: Number(settings.cleaningInfoY) - shiftUp,
+    rcInfoY: Number(settings.rcInfoY) - shiftUp
   };
 }
 
@@ -1928,13 +2013,17 @@ function getPrintableNames(record) {
 
 function getAutoNameFontSize(names) {
   const baseSize = Number(settings.nameFontSize);
+  const remainingWidth = getPrintFaceRemainingWidth(settings.nameX); // 실제 남은 폭 계산
+
   const longestWidth = names.reduce((max, name) => (
     Math.max(max, estimateTextWidthMm(name, baseSize))
   ), 0);
 
-  if (longestWidth <= NAME_AREA_WIDTH_MM) return baseSize;
 
-  const fittedSize = baseSize * (NAME_AREA_WIDTH_MM / longestWidth);
+
+
+  if (longestWidth <= remainingWidth) return baseSize;
+  const fittedSize = baseSize * (remainingWidth / longestWidth);
   return roundToTenth(Math.max(MIN_NAME_FONT_SIZE_PT, fittedSize));
 }
 
