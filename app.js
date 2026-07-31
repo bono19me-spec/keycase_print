@@ -1549,7 +1549,7 @@ function handleEditButtonClick(event) {
 
   editingRecordIndex = index;
 
-  // 입력 필드와 라벨 컨테이너들을 가져옴
+  // 인쇄 설정에 따른 필드 활성화 상태 정의
   const fields = [
     { id: "editRecRoom", active: settings.printRoom },
     { id: "editRecNames", active: settings.printName },
@@ -1561,11 +1561,18 @@ function handleEditButtonClick(event) {
 
   fields.forEach(f => {
     const input = document.getElementById(f.id);
-    const container = input.closest("label");
-    input.disabled = !f.active;
-    if (container) {
-      container.style.opacity = f.active ? "1" : "0.5";
-      container.style.background = f.active ? "transparent" : "#f5f5f5";
+    const label = input.closest("label");
+
+    if (f.active) {
+      input.disabled = false;
+      label.style.color = ""; // 기본색
+      label.style.opacity = "1";
+      input.style.backgroundColor = ""; // 기본색
+    } else {
+      input.disabled = true;
+      label.style.color = "#999"; // 회색 텍스트
+      label.style.opacity = "0.6";
+      input.style.backgroundColor = "#f0f0f0"; // 회색 배경
     }
   });
 
