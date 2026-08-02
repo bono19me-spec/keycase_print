@@ -292,6 +292,28 @@
               </div>
             </details>
 
+            <details class="simple-position-panel">
+              <summary><svg class="button-icon">
+                  <use href="#icon-sliders"></use>
+                </svg><span class="summary-copy"><strong>文字サイズを調整</strong><small>必要な場合のみ</small></span></summary>
+              <div class="simple-adjust-grid">
+                <label>氏名サイズ(pt)<input id="simpleNameFontSize" type="number" step="0.5" min="6"></label>
+                <label>部屋番号サイズ(pt)<input id="simpleRoomFontSize" type="number" step="0.5" min="6"></label>
+                <label>団体名サイズ(pt)<input id="simpleGroupNameFontSize" type="number" step="0.5" min="6"></label>
+                <label>宿泊日程サイズ(pt)<input id="simpleStayInfoFontSize" type="number" step="0.5" min="6"></label>
+                <label>清掃日サイズ(pt)<input id="simpleCleaningInfoFontSize" type="number" step="0.5" min="6"></label>
+                <label>部屋変更日サイズ(pt)<input id="simpleRcInfoFontSize" type="number" step="0.5" min="6"></label>
+              </div>
+              <div class="simple-adjust-actions">
+                <button id="simpleResetSettings" type="button" class="secondary icon-button"><svg class="button-icon">
+                    <use href="#icon-check"></use>
+                  </svg>初期値</button>
+                <button id="simpleSaveSettings" type="button" class="icon-button"><svg class="button-icon">
+                    <use href="#icon-check"></use>
+                  </svg>設定を保存</button>
+              </div>
+            </details>
+
             <div id="simplePrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
           </div>
 
