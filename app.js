@@ -37,7 +37,6 @@ const DEFAULT_SETTINGS = {
   printOrder: "load",
   globalOffsetX: 0,
   globalOffsetY: 0,
-  rotate180: false,
   dataStartRow: 13,
   roomColumn: "U",
   nameColumn: "X"
@@ -307,8 +306,7 @@ function loadSettings() {
       "nameX",
       "nameY",
       "roomX",
-      "roomY",
-      "rotate180"
+      "roomY"
     ].forEach((key) => {
       migrated[key] = DEFAULT_SETTINGS[key];
     });
@@ -349,17 +347,6 @@ function bindCleaningSettingsToForm() {
   updateCleaningControls();
 }
 
-function bindCustomSettingsToForm() {
-  [
-    ["simpleCustomPrintName", "printName"],
-    ["simpleCustomPrintNameHonorific", "printNameHonorific"],
-    ["simpleCustomPrintRoom", "printRoom"]
-  ].forEach(([id, key]) => {
-    document.getElementById(id).checked = Boolean(settings[key]);
-  });
-  updateCustomEntryHints();
-}
-
 function bindSimplePositionSettingsToForm() {
   Object.entries(simplePositionInputMap).forEach(([id, key]) => {
     const input = document.getElementById(id);
@@ -391,16 +378,6 @@ function updateCopyModeFromForm(value) {
 
 function updatePrintOrderFromForm(value) {
   settings.printOrder = value === "room" ? "room" : "load";
-}
-
-function updateCopyModeFromActiveForm() {
-  const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
-  if (selected) updateCopyModeFromForm(selected.value);
-}
-
-function updatePrintOrderFromActiveForm() {
-  const selected = document.querySelector('input[name="simplePrintOrder"]:checked');
-  if (selected) updatePrintOrderFromForm(selected.value);
 }
 
 function compareRoomNumbers(a, b) {
@@ -743,9 +720,7 @@ function positionLivePreviewLine(element, xMm, yMm, fontPt, lineGapMm = null) {
   element.style.top = `${yPercent}%`;
   element.style.fontSize = `${fontSizeCqw}cqw`;
   element.style.maxWidth = `${maxWidthCqw}cqw`;
-  element.style.transform = settings.rotate180
-    ? "translateY(-50%) rotate(180deg)"
-    : "translateY(-50%)";
+  element.style.transform = "translateY(-50%)";
   element.style.lineHeight = lineGapMm
     ? `${(Number(lineGapMm) / faceWidthMm) * 100}cqw`
     : "1.15";
@@ -1131,7 +1106,8 @@ function validateRequiredPrintField() {
 
 function saveSimpleSettings() {
   updateSettingsFromSimpleForm();
-  updatePrintOrderFromActiveForm();
+  const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
+  if (printOrder) updatePrintOrderFromForm(printOrder.value);
   updateSettingsFromSimplePositionForm();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
   setSimpleStatus("文字サイズをブラウザに保存しました。");
@@ -1539,8 +1515,10 @@ function openPrintWindow(mode) {
   if (!ensureData()) return;
   updateSettingsFromSimpleForm();
   updateSettingsFromSimplePositionForm();
-  updateCopyModeFromActiveForm();
-  updatePrintOrderFromActiveForm();
+  const copyMode = document.querySelector('input[name="simpleCopyMode"]:checked');
+  if (copyMode) updateCopyModeFromForm(copyMode.value);
+  const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
+  if (printOrder) updatePrintOrderFromForm(printOrder.value);
   if (!validateRequiredPrintField()) return;
 
   const selected = getRecordsForMode(mode);
@@ -1819,13 +1797,11 @@ function roundToTenth(value) {
 }
 
 function printX(baseX) {
-  const x = Number(baseX) + Number(settings.globalOffsetX);
-  return settings.rotate180 ? B6_WIDTH_MM - x : x;
+  return Number(baseX) + Number(settings.globalOffsetX);
 }
 
 function printY(baseY) {
-  const y = Number(baseY) + Number(settings.globalOffsetY);
-  return settings.rotate180 ? B6_HEIGHT_MM - y : y;
+  return Number(baseY) + Number(settings.globalOffsetY);
 }
 
 function getPrintFaceStartX() {
@@ -1838,14 +1814,12 @@ function getPrintFaceEndX() {
 
 function getPrintFaceRemainingWidth(baseX) {
   const x = Number(baseX) + Number(settings.globalOffsetX);
-  const width = settings.rotate180
-    ? x - getPrintFaceStartX()
-    : getPrintFaceEndX() - x;
+  const width = getPrintFaceEndX() - x;
   return roundToTenth(Math.max(MIN_WRAPPED_TEXT_WIDTH_MM, width));
 }
 
 function printTransform() {
-  return settings.rotate180 ? "translateY(-50%) rotate(180deg)" : "translateY(-50%)";
+  return "translateY(-50%)";
 }
 
 function setSimpleStatus(message, isError = false) {
