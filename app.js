@@ -79,9 +79,10 @@ const els = {
   simplePrintSelection: document.getElementById("simplePrintSelection"),
   simplePrintOptionsPanel: document.getElementById("simplePrintOptionsPanel"),
   simpleCopyModeHint: document.getElementById("simpleCopyModeHint"),
-  simpleCustomGroupName: document.getElementById("simpleCustomGroupName"),
-  simpleCustomStayInfo: document.getElementById("simpleCustomStayInfo"),
-  simpleCustomEntries: document.getElementById("simpleCustomEntries"),
+  simpleCustomGrid: document.getElementById("simpleCustomGrid"),
+  simpleCustomGridBody: document.getElementById("simpleCustomGridBody"),
+  simpleAddCustomRow: document.getElementById("simpleAddCustomRow"),
+  simpleCustomFieldError: document.getElementById("simpleCustomFieldError"),
   simpleGroupNameInput: document.getElementById("simpleGroupNameInput"),
   simpleGroupNamePreviewBadge: document.getElementById("simpleGroupNamePreviewBadge"),
   simpleNamePreviewChip: document.getElementById("simpleNamePreviewChip"),
@@ -132,8 +133,8 @@ init();
 function init() {
   els.homeBuildVersion.textContent = `Build ${BUILD_VERSION}`;
   bindSimpleSettingsToForm();
-  bindCustomSettingsToForm();
   bindSimplePositionSettingsToForm();
+  initCustomGrid();
   showSimpleStep(1);
 
   document.getElementById("simpleNextUpload").addEventListener("click", () => showSimpleStep(2));
@@ -167,21 +168,8 @@ function init() {
   ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintStaySchedule", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
-      bindCustomSettingsToForm();
       bindCleaningSettingsToForm();
       updatePrintFieldControls();
-      renderTable();
-    });
-  });
-  [
-    "simpleCustomPrintName",
-    "simpleCustomPrintNameHonorific",
-    "simpleCustomPrintRoom"
-  ].forEach((id) => {
-    document.getElementById(id).addEventListener("input", () => {
-      updateSettingsFromCustomForm(true);
-      bindSimpleSettingsToForm();
-      bindCustomSettingsToForm();
       renderTable();
     });
   });
@@ -254,7 +242,6 @@ function init() {
 
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
-  updateCustomEntryHints();
 }
 
 function setupDragAndDrop() {
@@ -542,37 +529,21 @@ function syncStayInfoMaster() {
   if (input) input.checked = settings.printStayInfo;
 }
 
-function updateSettingsFromCustomForm(isSimple) {
-  const prefix = "simpleCustom";
-  settings.printName = document.getElementById(`${prefix}PrintName`).checked;
-  settings.printNameHonorific = document.getElementById(`${prefix}PrintNameHonorific`).checked;
-  settings.printRoom = document.getElementById(`${prefix}PrintRoom`).checked;
-  updatePrintFieldControls();
-  updateCustomEntryHints();
-  return {
-    printName: settings.printName,
-    printNameHonorific: settings.printNameHonorific,
-    printRoom: settings.printRoom
-  };
-}
-
 function hasRequiredPrintField() {
   return Boolean(settings.printName || settings.printRoom);
 }
 
 function updatePrintFieldControls() {
   const simpleHonorific = document.getElementById("simplePrintNameHonorific");
-  const simpleCustomHonorific = document.getElementById("simpleCustomPrintNameHonorific");
   const simpleError = document.getElementById("simplePrintFieldError");
   const simpleCustomError = document.getElementById("simpleCustomFieldError");
   const simpleNext = document.getElementById("simpleNextInfo");
   const isValid = hasRequiredPrintField();
 
-  [simpleHonorific, simpleCustomHonorific].forEach((input) => {
-    if (!input) return;
-    input.disabled = !settings.printName;
-    input.closest(".checkbox-row")?.classList.toggle("is-disabled", !settings.printName);
-  });
+  if (simpleHonorific) {
+    simpleHonorific.disabled = !settings.printName;
+    simpleHonorific.closest(".checkbox-row")?.classList.toggle("is-disabled", !settings.printName);
+  }
   if (simpleError) simpleError.hidden = isValid;
   if (simpleCustomError) simpleCustomError.hidden = isValid;
   if (simpleNext) simpleNext.disabled = !isValid;
@@ -716,7 +687,7 @@ function updateLivePrintPreview(firstRecord) {
   setLivePreviewLine(
     els.simpleLiveCleaning,
     settings.printStayInfo && settings.printCleaningInfo,
-    settings.cleaningInfoCustomText || "清掃日：未設定"
+    (firstRecord && getCleaningInfo(firstRecord)) || settings.cleaningInfoCustomText || "清掃日：未設定"
   );
   positionLivePreviewLine(
     els.simpleLiveCleaning,
@@ -727,7 +698,7 @@ function updateLivePrintPreview(firstRecord) {
   setLivePreviewLine(
     els.simpleLiveRc,
     settings.printStayInfo && settings.printRcInfo,
-    settings.rcInfoCustomText || "部屋変更：未設定"
+    (firstRecord && getRcInfo(firstRecord)) || settings.rcInfoCustomText || "部屋変更：未設定"
   );
   positionLivePreviewLine(
     els.simpleLiveRc,
@@ -889,34 +860,258 @@ function formatSelectedDates(text) {
   return dates.length ? `選択済み: ${dates.join("、")}` : "日付未選択";
 }
 
-function updateCustomEntryHints() {
-  const label = getCustomEntriesLabel(settings);
-  const placeholder = getCustomEntriesPlaceholder(settings);
-  const labelEl = document.getElementById("simpleCustomEntriesLabel");
-  const textarea = document.getElementById("simpleCustomEntries");
-  if (labelEl) labelEl.textContent = label;
-  if (textarea) textarea.placeholder = placeholder;
+function initCustomGrid() {
+  const tbody = document.getElementById("simpleCustomGridBody");
+  const addBtn = document.getElementById("simpleAddCustomRow");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  for (let i = 0; i < 5; i += 1) {
+    addCustomGridRow(tbody);
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const newRow = addCustomGridRow(tbody);
+      if (newRow) {
+        const firstInput = newRow.querySelector("input.grid-cell");
+        if (firstInput) firstInput.focus();
+      }
+    });
+  }
 }
 
-function getCustomEntriesLabel(fields) {
-  if (fields.printName && fields.printRoom) return "部屋番号 / 氏名";
-  if (fields.printRoom) return "部屋番号";
-  if (fields.printName) return "氏名";
-  return "入力内容";
+function addCustomGridRow(tbody = document.getElementById("simpleCustomGridBody")) {
+  if (!tbody) return null;
+  const tr = document.createElement("tr");
+  tr.className = "custom-grid-row";
+  tr.innerHTML = `
+    <td><input type="text" class="grid-cell room-cell" placeholder="例: 704" data-col="0"></td>
+    <td><input type="text" class="grid-cell name1-cell" placeholder="例: 山田 太郎" data-col="1"></td>
+    <td><input type="text" class="grid-cell name2-cell" placeholder="例: 山田 花子" data-col="2"></td>
+    <td><input type="text" class="grid-cell stay-cell" placeholder="例: 7/7〜1泊" data-col="3"></td>
+    <td><input type="text" class="grid-cell cleaning-cell" placeholder="例: 7/8" data-col="4"></td>
+    <td><input type="text" class="grid-cell rc-cell" placeholder="例: 7/9" data-col="5"></td>
+    <td class="action-cell"><button type="button" class="remove-row-btn" title="行削除" tabindex="-1">×</button></td>
+  `;
+
+  tr.querySelectorAll("input.grid-cell").forEach((input) => {
+    input.addEventListener("keydown", handleGridCellKeyDown);
+    input.addEventListener("paste", handleGridCellPaste);
+  });
+
+  tr.querySelector(".remove-row-btn").addEventListener("click", () => {
+    const rows = tbody.querySelectorAll("tr.custom-grid-row");
+    if (rows.length > 1) {
+      tr.remove();
+    } else {
+      tr.querySelectorAll("input").forEach((inp) => (inp.value = ""));
+    }
+  });
+
+  tbody.appendChild(tr);
+  return tr;
 }
 
-function getCustomEntriesPlaceholder(fields) {
-  if (fields.printName && fields.printRoom) {
-    return "例:\n4082 イノウエ　トモオ/カワハラ　リッカ\n4083 カワカミ　ミコト";
+function handleGridCellKeyDown(e) {
+  const input = e.target;
+  const row = input.closest("tr");
+  const tbody = row.closest("tbody");
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll("tr.custom-grid-row"));
+  const rowIndex = rows.indexOf(row);
+  const inputsInRow = Array.from(row.querySelectorAll("input.grid-cell"));
+  const colIndex = inputsInRow.indexOf(input);
+
+  if (e.key === "Tab") {
+    if (!e.shiftKey) {
+      if (colIndex < inputsInRow.length - 1) {
+        e.preventDefault();
+        inputsInRow[colIndex + 1].focus();
+      } else {
+        e.preventDefault();
+        if (rowIndex < rows.length - 1) {
+          const nextRowInputs = rows[rowIndex + 1].querySelectorAll("input.grid-cell");
+          if (nextRowInputs[0]) nextRowInputs[0].focus();
+        } else {
+          const newRow = addCustomGridRow(tbody);
+          if (newRow) {
+            const newInputs = newRow.querySelectorAll("input.grid-cell");
+            if (newInputs[0]) newInputs[0].focus();
+          }
+        }
+      }
+    } else {
+      if (colIndex > 0) {
+        e.preventDefault();
+        inputsInRow[colIndex - 1].focus();
+      } else {
+        if (rowIndex > 0) {
+          e.preventDefault();
+          const prevRowInputs = rows[rowIndex - 1].querySelectorAll("input.grid-cell");
+          if (prevRowInputs[prevRowInputs.length - 1]) prevRowInputs[prevRowInputs.length - 1].focus();
+        }
+      }
+    }
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (!e.shiftKey) {
+      if (rowIndex < rows.length - 1) {
+        const nextRowInputs = rows[rowIndex + 1].querySelectorAll("input.grid-cell");
+        if (nextRowInputs[colIndex]) nextRowInputs[colIndex].focus();
+      } else {
+        const newRow = addCustomGridRow(tbody);
+        if (newRow) {
+          const newInputs = newRow.querySelectorAll("input.grid-cell");
+          if (newInputs[colIndex]) newInputs[colIndex].focus();
+        }
+      }
+    } else {
+      if (rowIndex > 0) {
+        const prevRowInputs = rows[rowIndex - 1].querySelectorAll("input.grid-cell");
+        if (prevRowInputs[colIndex]) prevRowInputs[colIndex].focus();
+      }
+    }
+  } else if (e.key === "ArrowDown") {
+    if (rowIndex < rows.length - 1) {
+      e.preventDefault();
+      const nextRowInputs = rows[rowIndex + 1].querySelectorAll("input.grid-cell");
+      if (nextRowInputs[colIndex]) nextRowInputs[colIndex].focus();
+    }
+  } else if (e.key === "ArrowUp") {
+    if (rowIndex > 0) {
+      e.preventDefault();
+      const prevRowInputs = rows[rowIndex - 1].querySelectorAll("input.grid-cell");
+      if (prevRowInputs[colIndex]) prevRowInputs[colIndex].focus();
+    }
   }
-  if (fields.printRoom) {
-    return "例:\n4082\n4083";
-  }
-  if (fields.printName) {
-    return "例:\nイノウエ　トモオ/カワハラ　リッカ\nカワカミ　ミコト";
-  }
-  return "氏名または部屋番号を選択してください。";
 }
+
+function handleGridCellPaste(e) {
+  const clipboardData = e.clipboardData || window.clipboardData;
+  if (!clipboardData) return;
+
+  const pastedText = clipboardData.getData("text");
+  if (!pastedText) return;
+
+  if (pastedText.includes("\t") || pastedText.includes("\n") || pastedText.includes("\r")) {
+    e.preventDefault();
+
+    const input = e.target;
+    const row = input.closest("tr");
+    const tbody = row.closest("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr.custom-grid-row"));
+    const startRowIdx = rows.indexOf(row);
+    const inputsInRow = Array.from(row.querySelectorAll("input.grid-cell"));
+    const startColIdx = inputsInRow.indexOf(input);
+
+    const lines = pastedText.split(/\r?\n/);
+    if (lines.length > 1 && lines[lines.length - 1] === "") {
+      lines.pop();
+    }
+
+    lines.forEach((line, rOffset) => {
+      let targetRowIdx = startRowIdx + rOffset;
+      let targetRows = Array.from(tbody.querySelectorAll("tr.custom-grid-row"));
+      while (targetRowIdx >= targetRows.length) {
+        addCustomGridRow(tbody);
+        targetRows = Array.from(tbody.querySelectorAll("tr.custom-grid-row"));
+      }
+      const targetRow = targetRows[targetRowIdx];
+      const targetInputs = targetRow.querySelectorAll("input.grid-cell");
+
+      const cells = line.split("\t");
+      cells.forEach((cellVal, cOffset) => {
+        let targetColIdx = startColIdx + cOffset;
+        if (targetColIdx < targetInputs.length) {
+          targetInputs[targetColIdx].value = cellVal.trim();
+        }
+      });
+    });
+  }
+}
+
+function loadSimpleCustomEntries() {
+  const tbody = document.getElementById("simpleCustomGridBody");
+  if (!tbody) return;
+
+  const rows = tbody.querySelectorAll("tr.custom-grid-row");
+  const valid = [];
+  const rowWarnings = [];
+
+  rows.forEach((tr, idx) => {
+    const inputs = tr.querySelectorAll("input.grid-cell");
+    const room = inputs[0]?.value.trim() || "";
+    const name1 = inputs[1]?.value.trim() || "";
+    const name2 = inputs[2]?.value.trim() || "";
+    const stayInfo = inputs[3]?.value.trim() || "";
+    let cleaning = inputs[4]?.value.trim() || "";
+    let rc = inputs[5]?.value.trim() || "";
+
+    if (!room && !name1 && !name2 && !stayInfo && !cleaning && !rc) return;
+
+    const names = [name1, name2].filter(Boolean);
+    if (!room && !names.length) {
+      rowWarnings.push({
+        excelRow: idx + 1,
+        room: "",
+        rawName: "",
+        reason: "部屋番号と氏名が空です"
+      });
+      return;
+    }
+
+    if (cleaning && !/^清掃/.test(cleaning)) {
+      cleaning = `清掃日：${cleaning}`;
+    }
+    if (rc && !/^(部屋変更|R\/C)/i.test(rc)) {
+      rc = `部屋変更：${rc}`;
+    }
+
+    const outputNames = names.map(normalizeGuestName);
+    const arrivalDate = parseMonthDayDate(stayInfo);
+
+    valid.push({
+      index: valid.length + 1,
+      excelRow: `入力${idx + 1}`,
+      room,
+      rawNames: names,
+      outputNames,
+      rawName: names.join(" / "),
+      outputName: outputNames.join(" / "),
+      guestCount: outputNames.length,
+      groupName: "",
+      stayInfo,
+      customCleaning: cleaning,
+      customRc: rc,
+      arrivalDate
+    });
+  });
+
+  records = valid;
+  warnings = rowWarnings;
+  currentWorkbook = null;
+  populateSheetSelect(null);
+
+  const errorEl = document.getElementById("simpleCustomFieldError");
+  if (!records.length) {
+    if (errorEl) errorEl.hidden = false;
+    resetPrintSelection();
+    renderTable();
+    setSimpleStatus("有効な部屋番号または氏名を入力してください。", true);
+    return;
+  }
+
+  if (errorEl) errorEl.hidden = true;
+  resetPrintSelection();
+  renderTable();
+  document.getElementById("simpleNextUpload").disabled = false;
+  const summary = getRecordsSummary(records);
+  setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${rowWarnings.length ? `警告 ${rowWarnings.length}件があります。` : ""}`);
+}
+
+
 
 function updateSettingsFromSimplePositionForm() {
   Object.entries(simplePositionInputMap).forEach(([id, key]) => {
@@ -1042,137 +1237,6 @@ function parseSelectedSheet() {
   }
 }
 
-function loadSimpleCustomEntries() {
-  const fields = updateSettingsFromCustomForm(true);
-  if (!validateRequiredPrintField()) return;
-  const text = els.simpleCustomEntries.value.trim();
-  if (!text) {
-    setSimpleStatus(`直接入力欄に${getCustomEntriesLabel(fields)}を入力してください。`, true);
-    return;
-  }
-
-  bindSimpleSettingsToForm();
-  const groupName = els.simpleCustomGroupName.value.trim();
-  const stayInfo = els.simpleCustomStayInfo.value.trim();
-  const parsed = parseCustomEntries(text, groupName, stayInfo, fields);
-  records = parsed.valid;
-  warnings = parsed.warnings;
-  currentWorkbook = null;
-  populateSheetSelect(null);
-
-  if (!records.length) {
-    resetPrintSelection();
-    renderTable();
-    setSimpleStatus("有効な直接入力データがありません。", true);
-    return;
-  }
-
-  const firstGroup = records.find((r) => r.groupName)?.groupName || "";
-  if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
-
-  resetPrintSelection();
-  renderTable();
-  document.getElementById("simpleNextUpload").disabled = false;
-  const summary = getRecordsSummary(records);
-  setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
-}
-
-function parseCustomEntries(text, groupName, stayInfo, fields = DEFAULT_SETTINGS) {
-  const valid = [];
-  const rowWarnings = [];
-  const needsRoom = Boolean(fields.printRoom);
-  const needsName = Boolean(fields.printName);
-  const arrivalDate = parseMonthDayDate(stayInfo);
-
-  text.split(/\r?\n/).forEach((line, lineIndex) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
-    const parsed = parseCustomLineForFields(trimmed, { needsRoom, needsName });
-    if ((needsRoom && !parsed.room) || (needsName && !parsed.names.length)) {
-      rowWarnings.push({
-        excelRow: lineIndex + 1,
-        room: parsed.room || "",
-        rawName: parsed.rawNames || trimmed,
-        reason: needsRoom && !parsed.room ? "部屋番号が空です" : "氏名が空です"
-      });
-      return;
-    }
-
-    const rawNames = parsed.names;
-    const outputNames = rawNames.map(normalizeGuestName);
-    valid.push({
-      index: valid.length + 1,
-      excelRow: `入力${lineIndex + 1}`,
-      room: parsed.room,
-      rawNames,
-      outputNames,
-      rawName: rawNames.join(" / "),
-      outputName: outputNames.join(" / "),
-      guestCount: outputNames.length,
-      groupName,
-      stayInfo,
-      arrivalDate
-    });
-  });
-
-  return { valid, warnings: rowWarnings };
-}
-
-function parseCustomLineForFields(line, fields) {
-  if (fields.needsRoom && fields.needsName) return parseCustomLine(line);
-  if (fields.needsRoom) {
-    return {
-      room: line.trim(),
-      names: [],
-      rawNames: ""
-    };
-  }
-  if (fields.needsName) {
-    return {
-      room: "",
-      names: splitCustomNames(line),
-      rawNames: line.trim()
-    };
-  }
-  return { room: "", names: [], rawNames: line };
-}
-
-function parseCustomLine(line) {
-  const tabParts = line.split(/\t+/).map((part) => part.trim()).filter(Boolean);
-  if (tabParts.length >= 2) {
-    return {
-      room: tabParts[0],
-      names: splitCustomNames(tabParts.slice(1).join("/")),
-      rawNames: tabParts.slice(1).join(" / ")
-    };
-  }
-
-  const commaParts = line.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
-  if (commaParts.length >= 2) {
-    return {
-      room: commaParts[0],
-      names: splitCustomNames(commaParts.slice(1).join("/")),
-      rawNames: commaParts.slice(1).join(" / ")
-    };
-  }
-
-  const match = line.match(/^(\S+)\s+(.+)$/);
-  if (!match) return { room: line, names: [], rawNames: "" };
-
-  return {
-    room: match[1].trim(),
-    names: splitCustomNames(match[2]),
-    rawNames: match[2].trim()
-  };
-}
-
-function splitCustomNames(value) {
-  return String(value || "")
-    .split(/\s*[\/／、,，;；]\s*/)
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
 
 function extractRecords(sheet) {
   const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
@@ -1392,14 +1456,14 @@ function saveIndividualRecordEdit() {
 }
 
 function getCleaningInfo(record) {
-  if (record.customCleaning !== undefined) return record.customCleaning;
   if (!settings.printStayInfo || !settings.printCleaningInfo) return "";
+  if (record.customCleaning !== undefined && record.customCleaning !== "") return record.customCleaning;
   return settings.cleaningInfoCustomText.trim();
 }
 
 function getRcInfo(record) {
-  if (record.customRc !== undefined) return record.customRc;
   if (!settings.printStayInfo || !settings.printRcInfo) return "";
+  if (record.customRc !== undefined && record.customRc !== "") return record.customRc;
   return settings.rcInfoCustomText.trim();
 }
 

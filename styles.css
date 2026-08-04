@@ -1262,23 +1262,121 @@ h2 {
   margin-bottom: 12px;
 }
 
-.custom-print-options {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.custom-print-options>.checkbox-row {
-  min-height: 46px;
-  padding: 10px 12px;
+.custom-grid-input-wrapper {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 8px;
+  background: #ffffff;
+  margin-bottom: 12px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.custom-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.custom-grid-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.custom-grid-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 10px 8px;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.custom-grid-table th:last-child {
+  border-right: none;
+  width: 44px;
+}
+
+.custom-grid-table td {
+  padding: 2px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.custom-grid-table td:last-child {
+  border-right: none;
+  text-align: center;
+}
+
+.custom-grid-table tr:hover td {
+  background: #f8fafc;
+}
+
+.grid-cell {
+  width: 100%;
+  min-height: 34px;
+  height: 34px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.12s ease-in-out;
+}
+
+.grid-cell:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.grid-cell:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.grid-cell::placeholder {
+  color: #a0aec0;
+  font-size: 12px;
+}
+
+.action-cell {
+  width: 44px;
+  vertical-align: middle;
+}
+
+.remove-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.remove-row-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+#simpleAddCustomRow {
+  margin-top: 8px;
   margin-bottom: 12px;
 }
 

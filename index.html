@@ -86,11 +86,11 @@
         <h2><svg class="heading-icon">
             <use href="#icon-upload"></use>
           </svg>Excelファイルをアップロード</h2>
-        <p class="muted">HNSから出力した団体予約名前リストExcelファイルを選択またはドラッグ＆ドロップしてください。ファイルはサーバーに送信されず、このブラウザ内で処理されます。</p>
+        <p class="muted">HNSから出力した団体メンパ一覧表のExcelファイルを選択またはドラッグ＆ドロップしてください。ファイルはサーバーに送信されず、このブラウザ内で処理されます。</p>
         <label class="file-drop" for="simpleExcelFile" id="simpleFileDrop">
           <input id="simpleExcelFile" type="file"
             accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-          <span class="file-drop-title">Excelファイルを選択またはドラッグ＆ドロップ</span>
+          <span class="file-drop-title">団体メンパ一覧表のExcelファイルを選択またはドラッグ＆ドロップ</span>
           <span id="simpleFileName" class="muted">.xls / .xlsx 対応、最初のシートを自動選択します。</span>
         </label>
         <details class="secondary-details">
@@ -104,26 +104,26 @@
 
         <details class="custom-entry">
           <summary>別の方法：Excelを使わずに直接入力</summary>
-          <div class="custom-print-options">
-            <div class="option-pair">
-              <label class="checkbox-row option-main"><input id="simpleCustomPrintName" type="checkbox"
-                  checked><span>氏名</span></label>
-              <label class="checkbox-row sub-option honorific-option"><input id="simpleCustomPrintNameHonorific"
-                  type="checkbox" checked><span>様</span></label>
-            </div>
-            <label class="checkbox-row option-main"><input id="simpleCustomPrintRoom" type="checkbox"
-                checked><span>部屋番号</span></label>
-            <div id="simpleCustomFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
+          <div class="custom-grid-input-wrapper">
+            <table id="simpleCustomGrid" class="custom-grid-table">
+              <thead>
+                <tr>
+                  <th>部屋番号</th>
+                  <th>氏名1</th>
+                  <th>氏名2</th>
+                  <th>宿泊日程</th>
+                  <th>清掃日</th>
+                  <th>部屋変更</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="simpleCustomGridBody">
+                <!-- 동적으로 행이 추가됨 -->
+              </tbody>
+            </table>
+            <button id="simpleAddCustomRow" type="button" class="secondary text-button">+ 行を追加</button>
           </div>
-          <div class="custom-grid">
-            <label>団体名<input id="simpleCustomGroupName" type="text" placeholder="任意"></label>
-            <label>宿泊日程<input id="simpleCustomStayInfo" type="text" placeholder="例: 7/7〜1泊"></label>
-          </div>
-          <label><span id="simpleCustomEntriesLabel">部屋番号 / 氏名</span>
-            <textarea id="simpleCustomEntries" rows="5" placeholder="例:
-4082 イノウエ　トモオ/カワハラ　リッカ
-4083 カワカミ　ミコト"></textarea>
-          </label>
+          <div id="simpleCustomFieldError" class="inline-error" hidden>有効な部屋番号または氏名を入力してください。</div>
           <button id="simpleLoadCustom" type="button" class="secondary icon-button"><svg class="button-icon">
               <use href="#icon-upload"></use>
             </svg>直接入力を読み込む</button>
