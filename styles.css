@@ -182,6 +182,20 @@ select {
   background: #fff;
   color: var(--muted);
   font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.step-indicator span:hover {
+  background: var(--soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.step-indicator span.active:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .step-icon,

@@ -148,6 +148,22 @@ function init() {
   document.getElementById("simpleNextPrinter").addEventListener("click", () => showSimpleStep(4));
   document.getElementById("simplePrevPrint").addEventListener("click", () => showSimpleStep(3));
 
+  // 스텝 인디케이터 클릭 이벤트 추가
+  document.querySelectorAll(".step-dot").forEach((dot) => {
+    const step = Number(dot.dataset.stepTarget);
+    const clickHandler = () => {
+      showSimpleStep(step);
+    };
+    dot.addEventListener("click", clickHandler);
+    // 키보드 접근성 지원 (Enter 또는 Space 키)
+    dot.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        showSimpleStep(step);
+      }
+    });
+  });
+
   ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintStaySchedule", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
