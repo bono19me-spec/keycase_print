@@ -45,7 +45,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260803-fontmenu";
+const BUILD_VERSION = "20260804-single-mode";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -69,58 +69,36 @@ let simpleStep = 1;
 let selectedRecordIndexes = new Set();
 
 const els = {
-  modeHome: document.getElementById("modeHome"),
   simpleApp: document.getElementById("simpleApp"),
-  advancedApp: document.getElementById("advancedApp"),
   homeBuildVersion: document.getElementById("homeBuildVersion"),
-  excelFile: document.getElementById("excelFile"),
-  fileName: document.getElementById("fileName"),
-  sheetSelect: document.getElementById("sheetSelect"),
   simpleExcelFile: document.getElementById("simpleExcelFile"),
+  simpleFileDrop: document.getElementById("simpleFileDrop"),
   simpleFileName: document.getElementById("simpleFileName"),
   simpleSheetSelect: document.getElementById("simpleSheetSelect"),
   simpleStatus: document.getElementById("simpleStatus"),
   simplePrintSelection: document.getElementById("simplePrintSelection"),
   simplePrintOptionsPanel: document.getElementById("simplePrintOptionsPanel"),
   simpleCopyModeHint: document.getElementById("simpleCopyModeHint"),
-  advancedPrintOptionsPanel: document.getElementById("advancedPrintOptionsPanel"),
-  advancedCopyModeHint: document.getElementById("advancedCopyModeHint"),
-  status: document.getElementById("status"),
-  dataTable: document.getElementById("dataTable"),
-  countBadge: document.getElementById("countBadge"),
-  warningBadge: document.getElementById("warningBadge"),
-  customGroupName: document.getElementById("customGroupName"),
-  customStayInfo: document.getElementById("customStayInfo"),
-  customEntries: document.getElementById("customEntries"),
   simpleCustomGroupName: document.getElementById("simpleCustomGroupName"),
   simpleCustomStayInfo: document.getElementById("simpleCustomStayInfo"),
   simpleCustomEntries: document.getElementById("simpleCustomEntries"),
   simpleGroupNameInput: document.getElementById("simpleGroupNameInput"),
-  advancedGroupNameInput: document.getElementById("advancedGroupNameInput"),
   simpleGroupNamePreviewBadge: document.getElementById("simpleGroupNamePreviewBadge"),
   simpleNamePreviewChip: document.getElementById("simpleNamePreviewChip"),
   simpleRoomPreviewChip: document.getElementById("simpleRoomPreviewChip"),
   simpleStayInfoPreviewChip: document.getElementById("simpleStayInfoPreviewChip"),
-  staySchedulePreview: document.getElementById("staySchedulePreview"),
   simpleAdditionalInfo: document.getElementById("simpleAdditionalInfo"),
-  advancedAdditionalInfo: document.getElementById("advancedAdditionalInfo"),
   simpleStayInfoDetails: document.getElementById("simpleStayInfoDetails"),
-  advancedStayInfoDetails: document.getElementById("advancedStayInfoDetails"),
   simpleAdditionalSummary: document.getElementById("simpleAdditionalSummary"),
-  advancedAdditionalSummary: document.getElementById("advancedAdditionalSummary"),
   simpleStaySelectionSummary: document.getElementById("simpleStaySelectionSummary"),
-  advancedStaySelectionSummary: document.getElementById("advancedStaySelectionSummary"),
   simpleLiveGroup: document.getElementById("simpleLiveGroup"),
   simpleLiveStay: document.getElementById("simpleLiveStay"),
   simpleLiveCleaning: document.getElementById("simpleLiveCleaning"),
   simpleLiveRc: document.getElementById("simpleLiveRc"),
   simpleLiveName: document.getElementById("simpleLiveName"),
   simpleLiveRoom: document.getElementById("simpleLiveRoom"),
-  advancedPrintSelection: document.getElementById("advancedPrintSelection"),
   recordEditModal: document.getElementById("recordEditModal"),
-  saveRecordEdit: document.getElementById("saveRecordEdit"),
-  selectAllRows: document.getElementById("selectAllRows"),
-  buildVersion: document.getElementById("buildVersion")
+  saveRecordEdit: document.getElementById("saveRecordEdit")
 };
 
 const settingInputs = [
@@ -153,46 +131,26 @@ init();
 
 function init() {
   els.homeBuildVersion.textContent = `Build ${BUILD_VERSION}`;
-  els.buildVersion.textContent = `Build ${BUILD_VERSION}`;
-  bindSettingsToForm();
   bindSimpleSettingsToForm();
   bindCustomSettingsToForm();
   bindSimplePositionSettingsToForm();
-  showMode("home");
   showSimpleStep(1);
 
-  document.getElementById("startSimple").addEventListener("click", () => {
-    showSimpleStep(1);
-    showMode("simple");
-  });
-  document.getElementById("startAdvanced").addEventListener("click", () => showMode("advanced"));
-  document.getElementById("simpleBackHome").addEventListener("click", () => showMode("home"));
-  document.getElementById("advancedBackHome").addEventListener("click", () => showMode("home"));
   document.getElementById("simpleNextUpload").addEventListener("click", () => showSimpleStep(2));
   document.getElementById("simplePrevInfo").addEventListener("click", () => showSimpleStep(1));
   document.getElementById("simpleNextInfo").addEventListener("click", () => {
     updateSettingsFromSimpleForm();
     if (!validateRequiredPrintField()) return;
-    bindSettingsToForm();
+    bindSimpleSettingsToForm();
     showSimpleStep(3);
   });
   document.getElementById("simplePrevPrinter").addEventListener("click", () => showSimpleStep(2));
   document.getElementById("simpleNextPrinter").addEventListener("click", () => showSimpleStep(4));
   document.getElementById("simplePrevPrint").addEventListener("click", () => showSimpleStep(3));
 
-  settingInputs.forEach((key) => {
-    document.getElementById(key).addEventListener("input", () => {
-      updateSettingsFromForm();
-      bindSimpleSettingsToForm();
-      bindCustomSettingsToForm();
-      bindSimplePositionSettingsToForm();
-      renderTable();
-    });
-  });
   ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintStaySchedule", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimpleForm();
-      bindSettingsToForm();
       bindCustomSettingsToForm();
       bindCleaningSettingsToForm();
       updatePrintFieldControls();
@@ -202,14 +160,10 @@ function init() {
   [
     "simpleCustomPrintName",
     "simpleCustomPrintNameHonorific",
-    "simpleCustomPrintRoom",
-    "customPrintName",
-    "customPrintNameHonorific",
-    "customPrintRoom"
+    "simpleCustomPrintRoom"
   ].forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
-      updateSettingsFromCustomForm(id.startsWith("simple"));
-      bindSettingsToForm();
+      updateSettingsFromCustomForm(true);
       bindSimpleSettingsToForm();
       bindCustomSettingsToForm();
       renderTable();
@@ -219,12 +173,10 @@ function init() {
   const handleGroupNameChange = (e) => {
     const val = e.target.value;
     if (els.simpleGroupNameInput && els.simpleGroupNameInput !== e.target) els.simpleGroupNameInput.value = val;
-    if (els.advancedGroupNameInput && els.advancedGroupNameInput !== e.target) els.advancedGroupNameInput.value = val;
     records.forEach((r) => { r.groupName = val; });
     renderTable();
   };
   if (els.simpleGroupNameInput) els.simpleGroupNameInput.addEventListener("input", handleGroupNameChange);
-  if (els.advancedGroupNameInput) els.advancedGroupNameInput.addEventListener("input", handleGroupNameChange);
 
   getDatePickerConfigs().forEach((config) => {
     document.getElementById(config.monthId).addEventListener("input", () => renderDatePicker(config));
@@ -248,13 +200,13 @@ function init() {
       if (event.target === dialog) dialog.close();
     });
   });
-  document.querySelectorAll('input[name="simpleCopyMode"], input[name="advancedCopyMode"]').forEach((input) => {
+  document.querySelectorAll('input[name="simpleCopyMode"]').forEach((input) => {
     input.addEventListener("input", () => {
       updateCopyModeFromForm(input.value);
       bindCopyModeToForm();
     });
   });
-  document.querySelectorAll('input[name="simplePrintOrder"], input[name="advancedPrintOrder"]').forEach((input) => {
+  document.querySelectorAll('input[name="simplePrintOrder"]').forEach((input) => {
     input.addEventListener("input", () => {
       updatePrintOrderFromForm(input.value);
       bindPrintOrderToForm();
@@ -264,50 +216,63 @@ function init() {
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
-      bindSettingsToForm();
       updatePreviewChips();
     });
   });
   document.getElementById("simpleSaveSettings").addEventListener("click", saveSimpleSettings);
   document.getElementById("simpleResetSettings").addEventListener("click", resetSimpleSettings);
 
-  els.excelFile.addEventListener("change", handleFile);
-  els.sheetSelect.addEventListener("change", parseSelectedSheet);
   els.simpleExcelFile.addEventListener("change", handleFile);
   els.simpleSheetSelect.addEventListener("change", parseSelectedSheet);
-  document.getElementById("loadCustom").addEventListener("click", loadCustomEntries);
   document.getElementById("simpleLoadCustom").addEventListener("click", loadSimpleCustomEntries);
-  document.getElementById("saveSettings").addEventListener("click", saveSettings);
-  document.getElementById("resetSettings").addEventListener("click", resetSettings);
-  document.getElementById("testPrint").addEventListener("click", () => openPrintWindow("test"));
-  document.getElementById("rangePrint").addEventListener("click", () => openPrintWindow("range"));
-  document.getElementById("allPrint").addEventListener("click", () => openPrintWindow("all"));
   document.getElementById("simpleTestPrint").addEventListener("click", () => openPrintWindow("test"));
   document.getElementById("simpleRangePrint").addEventListener("click", () => openPrintWindow("range"));
   document.getElementById("simpleAllPrint").addEventListener("click", () => openPrintWindow("all"));
-  [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
-    panel.addEventListener("change", handlePrintSelectionChange);
-    panel.addEventListener("click", handlePrintSelectionAction);
-    panel.addEventListener("click", handleEditButtonClick);
-  });
+  els.simplePrintSelection.addEventListener("change", handlePrintSelectionChange);
+  els.simplePrintSelection.addEventListener("click", handlePrintSelectionAction);
+  els.simplePrintSelection.addEventListener("click", handleEditButtonClick);
   els.recordEditModal.querySelector("[data-close-record-edit]").addEventListener("click", () => els.recordEditModal.close());
   els.saveRecordEdit.addEventListener("click", saveIndividualRecordEdit);
-  els.dataTable.addEventListener("change", handlePrintSelectionChange);
-  els.selectAllRows.addEventListener("change", () => {
-    setAllPrintSelection(els.selectAllRows.checked);
-    renderTable();
-  });
+
+  setupDragAndDrop();
+
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
   updateCustomEntryHints();
 }
 
-function showMode(mode) {
-  els.modeHome.hidden = mode !== "home";
-  els.simpleApp.hidden = mode !== "simple";
-  els.advancedApp.hidden = mode !== "advanced";
-  updateCopyModeVisibility();
-  if (mode === "advanced") updatePrintSelectionPanels();
+function setupDragAndDrop() {
+  const dropZone = els.simpleFileDrop;
+  if (!dropZone) return;
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add("drag-over");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove("drag-over");
+    });
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.name.match(/\.(xls|xlsx)$/i)) {
+        els.simpleExcelFile.files = files;
+        handleFile({ target: { files: [file] } });
+      } else {
+        setSimpleStatus("Excelファイル（.xls / .xlsx）をドロップしてください。", true);
+      }
+    }
+  });
 }
 
 function showSimpleStep(step) {
@@ -350,25 +315,6 @@ function loadSettings() {
   }
 }
 
-function bindSettingsToForm() {
-  syncStayInfoMaster();
-  settingInputs.forEach((key) => {
-    const input = document.getElementById(key);
-    if (input.type === "checkbox") {
-      input.checked = Boolean(settings[key]);
-    } else {
-      input.value = settings[key];
-    }
-  });
-  if (settings.printGroupName || settings.printStayInfo) {
-    els.advancedAdditionalInfo.open = true;
-  }
-  if (settings.printStayInfo) {
-    els.advancedStayInfoDetails.open = true;
-  }
-  updatePrintFieldControls();
-}
-
 function bindSimpleSettingsToForm() {
   syncStayInfoMaster();
   document.getElementById("simplePrintName").checked = Boolean(settings.printName);
@@ -404,10 +350,7 @@ function bindCustomSettingsToForm() {
   [
     ["simpleCustomPrintName", "printName"],
     ["simpleCustomPrintNameHonorific", "printNameHonorific"],
-    ["simpleCustomPrintRoom", "printRoom"],
-    ["customPrintName", "printName"],
-    ["customPrintNameHonorific", "printNameHonorific"],
-    ["customPrintRoom", "printRoom"]
+    ["simpleCustomPrintRoom", "printRoom"]
   ].forEach(([id, key]) => {
     document.getElementById(id).checked = Boolean(settings[key]);
   });
@@ -427,14 +370,14 @@ function bindSimplePositionSettingsToForm() {
 
 function bindCopyModeToForm() {
   const mode = settings.printCopyMode === "guest" ? "guest" : "room";
-  document.querySelectorAll('input[name="simpleCopyMode"], input[name="advancedCopyMode"]').forEach((input) => {
+  document.querySelectorAll('input[name="simpleCopyMode"]').forEach((input) => {
     input.checked = input.value === mode;
   });
 }
 
 function bindPrintOrderToForm() {
   const order = settings.printOrder === "room" ? "room" : "load";
-  document.querySelectorAll('input[name="simplePrintOrder"], input[name="advancedPrintOrder"]').forEach((input) => {
+  document.querySelectorAll('input[name="simplePrintOrder"]').forEach((input) => {
     input.checked = input.value === order;
   });
 }
@@ -448,18 +391,12 @@ function updatePrintOrderFromForm(value) {
 }
 
 function updateCopyModeFromActiveForm() {
-  const selector = els.simpleApp.hidden
-    ? 'input[name="advancedCopyMode"]:checked'
-    : 'input[name="simpleCopyMode"]:checked';
-  const selected = document.querySelector(selector);
+  const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
   if (selected) updateCopyModeFromForm(selected.value);
 }
 
 function updatePrintOrderFromActiveForm() {
-  const selector = els.simpleApp.hidden
-    ? 'input[name="advancedPrintOrder"]:checked'
-    : 'input[name="simplePrintOrder"]:checked';
-  const selected = document.querySelector(selector);
+  const selected = document.querySelector('input[name="simplePrintOrder"]:checked');
   if (selected) updatePrintOrderFromForm(selected.value);
 }
 
@@ -501,18 +438,12 @@ function updateCopyModeVisibility() {
     ? `2名以上の部屋が${multiRooms.length}室あります。人数分の場合は追加で${extraCards}枚印刷されます。`
     : "";
 
-  [els.simplePrintOptionsPanel, els.advancedPrintOptionsPanel].forEach((panel) => {
-    if (panel) panel.hidden = !hasRecords;
-  });
+  if (els.simplePrintOptionsPanel) els.simplePrintOptionsPanel.hidden = !hasRecords;
 
-  // 印刷枚数セクション：1室1人のみの場合は非表示
-  ["simpleCopyModeRow", "advancedCopyModeRow"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.hidden = !hasMultiRooms;
-  });
+  const copyModeRow = document.getElementById("simpleCopyModeRow");
+  if (copyModeRow) copyModeRow.hidden = !hasMultiRooms;
 
   els.simpleCopyModeHint.textContent = hint;
-  els.advancedCopyModeHint.textContent = hint;
 }
 
 function resetPrintSelection() {
@@ -536,17 +467,10 @@ function handlePrintSelectionChange(event) {
     selectedRecordIndexes.delete(index);
   }
 
-  // スクロール位置を維持するため、チェックボックス変更時はDOMを全再描画せず
-  // 対象行のCSS更新とツールバーカウントのみ更新する
   const selectedRecords = getSelectedRecords();
 
-
-  // 全ての選択リストパネル의 行スタイルとツールバー를 軽量更新
-  [els.simplePrintSelection, els.advancedPrintSelection].forEach((panel) => {
-    if (!panel) return;
-
-    // 行のunselected-rowクラス를 更新
-    panel.querySelectorAll("[data-print-select-index]").forEach((cb) => {
+  if (els.simplePrintSelection) {
+    els.simplePrintSelection.querySelectorAll("[data-print-select-index]").forEach((cb) => {
       const row = cb.closest(".selection-row");
       if (!row) return;
       const isSelected = selectedRecordIndexes.has(cb.dataset.printSelectIndex);
@@ -554,15 +478,8 @@ function handlePrintSelectionChange(event) {
       row.classList.toggle("unselected-row", !isSelected);
     });
 
-    // ツールバー의 カウント表示를 更新
-    const countEl = panel.querySelector(".selection-toolbar strong");
+    const countEl = els.simplePrintSelection.querySelector(".selection-toolbar strong");
     if (countEl) countEl.textContent = `選択中 ${selectedRecords.length}件 / ${records.length}件`;
-  });
-
-
-  // dataTable의 チェックボックスから来た場合はテーブル全体の選択状態を更新
-  if (event.target.closest("#dataTable") || event.currentTarget === els.dataTable) {
-    updateTableSelectionControl(selectedRecords);
   }
 }
 
@@ -580,20 +497,6 @@ function isRecordSelected(record) {
 
 function getSelectedRecords() {
   return records.filter(isRecordSelected);
-}
-
-function updateSettingsFromForm() {
-  settingInputs.forEach((key) => {
-    const input = document.getElementById(key);
-    settings[key] = input.type === "checkbox" ? input.checked : Number(input.value);
-  });
-  syncStayInfoMaster();
-  const selected = document.querySelector('input[name="advancedCopyMode"]:checked');
-  if (selected) settings.printCopyMode = selected.value;
-  const printOrder = document.querySelector('input[name="advancedPrintOrder"]:checked');
-  if (printOrder) settings.printOrder = printOrder.value;
-  updatePrintFieldControls();
-  updateCleaningControls();
 }
 
 function updateSettingsFromSimpleForm() {
@@ -619,14 +522,12 @@ function syncStayInfoMaster() {
     || settings.printCleaningInfo
     || settings.printRcInfo
   );
-  ["simplePrintStayInfo", "printStayInfo"].forEach((id) => {
-    const input = document.getElementById(id);
-    if (input) input.checked = settings.printStayInfo;
-  });
+  const input = document.getElementById("simplePrintStayInfo");
+  if (input) input.checked = settings.printStayInfo;
 }
 
 function updateSettingsFromCustomForm(isSimple) {
-  const prefix = isSimple ? "simpleCustom" : "custom";
+  const prefix = "simpleCustom";
   settings.printName = document.getElementById(`${prefix}PrintName`).checked;
   settings.printNameHonorific = document.getElementById(`${prefix}PrintNameHonorific`).checked;
   settings.printRoom = document.getElementById(`${prefix}PrintRoom`).checked;
@@ -645,32 +546,25 @@ function hasRequiredPrintField() {
 
 function updatePrintFieldControls() {
   const simpleHonorific = document.getElementById("simplePrintNameHonorific");
-  const advancedHonorific = document.getElementById("printNameHonorific");
   const simpleCustomHonorific = document.getElementById("simpleCustomPrintNameHonorific");
-  const customHonorific = document.getElementById("customPrintNameHonorific");
   const simpleError = document.getElementById("simplePrintFieldError");
-  const advancedError = document.getElementById("advancedPrintFieldError");
   const simpleCustomError = document.getElementById("simpleCustomFieldError");
-  const customError = document.getElementById("customFieldError");
   const simpleNext = document.getElementById("simpleNextInfo");
   const isValid = hasRequiredPrintField();
 
-  [simpleHonorific, advancedHonorific, simpleCustomHonorific, customHonorific].forEach((input) => {
+  [simpleHonorific, simpleCustomHonorific].forEach((input) => {
     if (!input) return;
     input.disabled = !settings.printName;
     input.closest(".checkbox-row")?.classList.toggle("is-disabled", !settings.printName);
   });
   if (simpleError) simpleError.hidden = isValid;
-  if (advancedError) advancedError.hidden = isValid;
   if (simpleCustomError) simpleCustomError.hidden = isValid;
-  if (customError) customError.hidden = isValid;
   if (simpleNext) simpleNext.disabled = !isValid;
 }
 
 function updatePreviewChips() {
   const firstRecord = records[0];
 
-  // 氏名 Preview Chip
   if (els.simpleNamePreviewChip) {
     if (firstRecord && firstRecord.outputNames && firstRecord.outputNames.length) {
       const formatted = formatGuestNameForPrint(firstRecord.outputNames[0]);
@@ -680,7 +574,6 @@ function updatePreviewChips() {
     }
   }
 
-  // 部屋番号 Preview Chip
   if (els.simpleRoomPreviewChip) {
     if (firstRecord && firstRecord.room) {
       els.simpleRoomPreviewChip.textContent = `例: ${firstRecord.room}`;
@@ -689,19 +582,14 @@ function updatePreviewChips() {
     }
   }
 
-  // 団体名 (Group Name) Input & Preview
   const groupNameVal = (firstRecord && firstRecord.groupName) ? firstRecord.groupName : (els.simpleGroupNameInput ? els.simpleGroupNameInput.value : "");
   if (els.simpleGroupNameInput && document.activeElement !== els.simpleGroupNameInput) {
     els.simpleGroupNameInput.value = groupNameVal;
-  }
-  if (els.advancedGroupNameInput && document.activeElement !== els.advancedGroupNameInput) {
-    els.advancedGroupNameInput.value = groupNameVal;
   }
   if (els.simpleGroupNamePreviewBadge) {
     els.simpleGroupNamePreviewBadge.hidden = !settings.printGroupName;
   }
 
-  // 宿泊日程 (Stay Schedule) Preview
   const stayInfoText = (firstRecord && firstRecord.stayInfo) ? firstRecord.stayInfo : "";
   if (els.simpleStayInfoPreviewChip) {
     if (stayInfoText) {
@@ -711,9 +599,6 @@ function updatePreviewChips() {
       els.simpleStayInfoPreviewChip.textContent = "例: 7/7〜1泊";
       els.simpleStayInfoPreviewChip.classList.remove("has-value");
     }
-  }
-  if (els.staySchedulePreview) {
-    els.staySchedulePreview.textContent = `例: ${stayInfoText || "7/7〜1泊"}`;
   }
 
   updateAdditionalInformationControls();
@@ -771,9 +656,7 @@ function closeDatePickerModal(panelId) {
 
 function updateAdditionalInformationControls() {
   const simpleGroupBody = document.getElementById("simpleGroupNameBody");
-  const advancedGroupBody = document.getElementById("advancedGroupNameBody");
   if (simpleGroupBody) simpleGroupBody.hidden = !settings.printGroupName;
-  if (advancedGroupBody) advancedGroupBody.hidden = !settings.printGroupName;
 
   const stayCount = [
     settings.printStaySchedule,
@@ -784,12 +667,8 @@ function updateAdditionalInformationControls() {
   const staySummary = stayCount ? `${stayCount}項目選択` : "未選択";
   const additionalSummary = additionalCount ? `${additionalCount}項目選択` : "未選択";
 
-  [els.simpleStaySelectionSummary, els.advancedStaySelectionSummary].forEach((element) => {
-    if (element) element.textContent = staySummary;
-  });
-  [els.simpleAdditionalSummary, els.advancedAdditionalSummary].forEach((element) => {
-    if (element) element.textContent = additionalSummary;
-  });
+  if (els.simpleStaySelectionSummary) els.simpleStaySelectionSummary.textContent = staySummary;
+  if (els.simpleAdditionalSummary) els.simpleAdditionalSummary.textContent = additionalSummary;
 }
 
 function updateLivePrintPreview(firstRecord) {
@@ -891,20 +770,6 @@ function getDatePickerConfigs() {
       label: "清掃",
       maxDates: 6,
       printKey: "printCleaningInfo",
-      inputId: "printCleaningInfo",
-      textKey: "cleaningInfoCustomText",
-      panelId: "cleaningInfoPicker",
-      openButtonId: "openCleaningInfoPicker",
-      monthId: "cleaningInfoMonth",
-      calendarId: "cleaningInfoCalendar",
-      clearButtonId: "clearCleaningInfoDates",
-      selectedId: "cleaningInfoSelectedDates",
-      previewId: "cleaningInfoPreview"
-    },
-    {
-      label: "清掃",
-      maxDates: 6,
-      printKey: "printCleaningInfo",
       inputId: "simplePrintCleaningInfo",
       textKey: "cleaningInfoCustomText",
       panelId: "simpleCleaningInfoPicker",
@@ -914,20 +779,6 @@ function getDatePickerConfigs() {
       clearButtonId: "simpleClearCleaningInfoDates",
       selectedId: "simpleCleaningInfoSelectedDates",
       previewId: "simpleCleaningInfoPreview"
-    },
-    {
-      label: "部屋変更",
-      maxDates: 1,
-      printKey: "printRcInfo",
-      inputId: "printRcInfo",
-      textKey: "rcInfoCustomText",
-      panelId: "rcInfoPicker",
-      openButtonId: "openRcInfoPicker",
-      monthId: "rcInfoMonth",
-      calendarId: "rcInfoCalendar",
-      clearButtonId: "clearRcInfoDates",
-      selectedId: "rcInfoSelectedDates",
-      previewId: "rcInfoPreview"
     },
     {
       label: "部屋変更",
@@ -1022,22 +873,13 @@ function formatSelectedDates(text) {
   return dates.length ? `選択済み: ${dates.join("、")}` : "日付未選択";
 }
 
-function getDateInfoText(config) {
-  return String(settings[config.textKey] || "").trim();
-}
-
 function updateCustomEntryHints() {
   const label = getCustomEntriesLabel(settings);
   const placeholder = getCustomEntriesPlaceholder(settings);
-  [
-    ["simpleCustomEntriesLabel", "simpleCustomEntries"],
-    ["customEntriesLabel", "customEntries"]
-  ].forEach(([labelId, textareaId]) => {
-    const labelEl = document.getElementById(labelId);
-    const textarea = document.getElementById(textareaId);
-    if (labelEl) labelEl.textContent = label;
-    if (textarea) textarea.placeholder = placeholder;
-  });
+  const labelEl = document.getElementById("simpleCustomEntriesLabel");
+  const textarea = document.getElementById("simpleCustomEntries");
+  if (labelEl) labelEl.textContent = label;
+  if (textarea) textarea.placeholder = placeholder;
 }
 
 function getCustomEntriesLabel(fields) {
@@ -1072,42 +914,20 @@ function validateRequiredPrintField() {
   if (hasRequiredPrintField()) return true;
 
   const message = "氏名または部屋番号を少なくとも1つ選択してください。";
-  setStatus(message, true);
   setSimpleStatus(message, true);
   return false;
-}
-
-function saveSettings() {
-  updateSettingsFromForm();
-  updateCopyModeFromActiveForm();
-  updatePrintOrderFromActiveForm();
-  bindSimplePositionSettingsToForm();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-  setStatus("設定をブラウザに保存しました。");
 }
 
 function saveSimpleSettings() {
   updateSettingsFromSimpleForm();
   updatePrintOrderFromActiveForm();
   updateSettingsFromSimplePositionForm();
-  bindSettingsToForm();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
   setSimpleStatus("文字サイズをブラウザに保存しました。");
 }
 
-function resetSettings() {
-  resetFontSizesToDefault();
-  bindSettingsToForm();
-  bindSimpleSettingsToForm();
-  bindSimplePositionSettingsToForm();
-  updatePreviewChips();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-  setStatus("文字サイズを初期値に戻しました。");
-}
-
 function resetSimpleSettings() {
   resetFontSizesToDefault();
-  bindSettingsToForm();
   bindSimpleSettingsToForm();
   bindSimplePositionSettingsToForm();
   updatePreviewChips();
@@ -1137,9 +957,7 @@ async function handleFile(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  els.fileName.textContent = file.name;
   els.simpleFileName.textContent = file.name;
-  setStatus("Excelファイルを読み込んでいます。");
   setSimpleStatus("Excelファイルを読み込んでいます。");
 
   try {
@@ -1154,33 +972,28 @@ async function handleFile(event) {
     warnings = [];
     resetPrintSelection();
     renderTable();
-    setStatus(error.message || "ファイルを読み込めません。", true);
     setSimpleStatus(error.message || "ファイルを読み込めません。", true);
   }
 }
 
 function populateSheetSelect(workbook) {
   const sheetNames = workbook?.SheetNames || [];
-  [els.sheetSelect, els.simpleSheetSelect].forEach((select) => {
-    select.disabled = !sheetNames.length;
-    select.innerHTML = sheetNames.length
-      ? sheetNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
-      : '<option value="">Excelファイルを選択してください</option>';
+  const select = els.simpleSheetSelect;
+  select.disabled = !sheetNames.length;
+  select.innerHTML = sheetNames.length
+    ? sheetNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
+    : '<option value="">Excelファイルを選択してください</option>';
 
-    if (sheetNames.length) {
-      select.value = sheetNames.includes(SHEET_NAME) ? SHEET_NAME : sheetNames[0];
-    }
-  });
+  if (sheetNames.length) {
+    select.value = sheetNames.includes(SHEET_NAME) ? SHEET_NAME : sheetNames[0];
+  }
 }
 
 function parseSelectedSheet() {
   if (!currentWorkbook) return;
 
   try {
-    const activeSelect = els.simpleApp.hidden ? els.sheetSelect : els.simpleSheetSelect;
-    const sheetName = activeSelect.value || currentWorkbook.SheetNames[0];
-    els.sheetSelect.value = sheetName;
-    els.simpleSheetSelect.value = sheetName;
+    const sheetName = els.simpleSheetSelect.value || currentWorkbook.SheetNames[0];
     const sheet = currentWorkbook.Sheets[sheetName];
 
     if (!sheet) {
@@ -1197,13 +1010,11 @@ function parseSelectedSheet() {
 
     const firstGroup = records.find((r) => r.groupName)?.groupName || "";
     if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
-    if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
     resetPrintSelection();
     renderTable();
     document.getElementById("simpleNextUpload").disabled = false;
     const summary = getRecordsSummary(records);
-    setStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
     setSimpleStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
   } catch (error) {
     records = [];
@@ -1211,46 +1022,8 @@ function parseSelectedSheet() {
     resetPrintSelection();
     renderTable();
     document.getElementById("simpleNextUpload").disabled = true;
-    setStatus(error.message || "シートを読み込めません。", true);
     setSimpleStatus(error.message || "シートを読み込めません。", true);
   }
-}
-
-function loadCustomEntries() {
-  const fields = updateSettingsFromCustomForm(false);
-  if (!validateRequiredPrintField()) return;
-  const text = els.customEntries.value.trim();
-  if (!text) {
-    setStatus(`直接入力欄に${getCustomEntriesLabel(fields)}を入力してください。`, true);
-    return;
-  }
-
-  bindSimpleSettingsToForm();
-  const groupName = els.customGroupName.value.trim();
-  const stayInfo = els.customStayInfo.value.trim();
-  const parsed = parseCustomEntries(text, groupName, stayInfo, fields);
-  records = parsed.valid;
-  warnings = parsed.warnings;
-  currentWorkbook = null;
-  populateSheetSelect(null);
-
-  if (!records.length) {
-    resetPrintSelection();
-    renderTable();
-    setStatus("有効な直接入力データがありません。", true);
-    return;
-  }
-
-  const firstGroup = records.find((r) => r.groupName)?.groupName || "";
-  if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
-  if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
-
-  resetPrintSelection();
-  renderTable();
-  document.getElementById("simpleNextUpload").disabled = false;
-  const summary = getRecordsSummary(records);
-  setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
-  setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
 }
 
 function loadSimpleCustomEntries() {
@@ -1262,7 +1035,6 @@ function loadSimpleCustomEntries() {
     return;
   }
 
-  bindSettingsToForm();
   bindSimpleSettingsToForm();
   const groupName = els.simpleCustomGroupName.value.trim();
   const stayInfo = els.simpleCustomStayInfo.value.trim();
@@ -1281,13 +1053,11 @@ function loadSimpleCustomEntries() {
 
   const firstGroup = records.find((r) => r.groupName)?.groupName || "";
   if (els.simpleGroupNameInput) els.simpleGroupNameInput.value = firstGroup;
-  if (els.advancedGroupNameInput) els.advancedGroupNameInput.value = firstGroup;
 
   resetPrintSelection();
   renderTable();
   document.getElementById("simpleNextUpload").disabled = false;
   const summary = getRecordsSummary(records);
-  setStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
   setSimpleStatus(`直接入力から ${summary}のデータを読み込みました。${warnings.length ? `警告 ${warnings.length}件があります。` : ""}`);
 }
 
@@ -1549,7 +1319,6 @@ function handleEditButtonClick(event) {
 
   editingRecordIndex = index;
 
-  // 인쇄 설정에 따른 필드 활성화 상태 정의
   const fields = [
     { id: "editRecRoom", active: settings.printRoom },
     { id: "editRecNames", active: settings.printName },
@@ -1565,14 +1334,14 @@ function handleEditButtonClick(event) {
 
     if (f.active) {
       input.disabled = false;
-      label.style.color = ""; // 기본색
+      label.style.color = "";
       label.style.opacity = "1";
-      input.style.backgroundColor = ""; // 기본색
+      input.style.backgroundColor = "";
     } else {
       input.disabled = true;
-      label.style.color = "#999"; // 회색 텍스트
+      label.style.color = "#999";
       label.style.opacity = "0.6";
-      input.style.backgroundColor = "#f0f0f0"; // 회색 배경
+      input.style.backgroundColor = "#f0f0f0";
     }
   });
 
@@ -1619,60 +1388,14 @@ function getRcInfo(record) {
 }
 
 function renderTable() {
-  const selectedRecords = getSelectedRecords();
-  els.countBadge.textContent = records.length
-    ? `${getRecordsSummary(records)} / 選択 ${selectedRecords.length}件`
-    : getRecordsSummary(records);
-  els.warningBadge.textContent = warnings.length ? `警告 ${warnings.length}件` : "";
-
-  const rows = records.map((record) => {
-    const selected = isRecordSelected(record);
-    return `
-    <tr class="${selected ? "" : "unselected-row"}">
-      <td><input type="checkbox" data-print-select-index="${record.index}" ${selected ? "checked" : ""} aria-label="印刷対象"></td>
-      <td>${record.index}</td>
-      <td>${record.excelRow}</td>
-      <td>${escapeHtml(record.room)}</td>
-      <td>${escapeHtml(record.rawName)}</td>
-      <td>${record.outputNames.length}</td>
-      <td>${escapeHtml(record.stayInfo)}</td>
-      <td>${escapeHtml(getCleaningInfo(record))}</td>
-      <td>${escapeHtml(getRcInfo(record))}</td>
-      <td>${escapeHtml(getPrintableNames(record).join(" / "))}</td>
-      <td>使用</td>
-    </tr>
-  `;
-  });
-
-  const warningRows = warnings.map((warning) => `
-    <tr class="bad-row">
-      <td>-</td>
-      <td>-</td>
-      <td>${warning.excelRow}</td>
-      <td>${escapeHtml(warning.room)}</td>
-      <td>${escapeHtml(warning.rawName)}</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>${warning.reason}</td>
-    </tr>
-  `);
-
-  els.dataTable.innerHTML = rows.concat(warningRows).join("") || '<tr><td colspan="11" class="empty">Excelファイルを選択するとデータが表示されます。</td></tr>';
-  updatePrintSelectionPanels(selectedRecords);
-  updateTableSelectionControl(selectedRecords);
+  updatePrintSelectionPanels();
   updateCopyModeVisibility();
   updateCleaningControls();
 }
 
 function updatePrintSelectionPanels(selectedRecords = getSelectedRecords()) {
-  const panels = [els.simplePrintSelection, els.advancedPrintSelection].filter(Boolean);
-  const content = buildPrintSelectionPanelHtml(selectedRecords);
-  panels.forEach((panel) => {
-    panel.innerHTML = content;
-  });
+  if (!els.simplePrintSelection) return;
+  els.simplePrintSelection.innerHTML = buildPrintSelectionPanelHtml(selectedRecords);
 }
 
 function buildPrintSelectionPanelHtml(selectedRecords) {
@@ -1710,16 +1433,8 @@ function buildPrintSelectionPanelHtml(selectedRecords) {
   `;
 }
 
-function updateTableSelectionControl(selectedRecords) {
-  if (!els.selectAllRows) return;
-  els.selectAllRows.checked = records.length > 0 && selectedRecords.length === records.length;
-  els.selectAllRows.indeterminate = selectedRecords.length > 0 && selectedRecords.length < records.length;
-  els.selectAllRows.disabled = !records.length;
-}
-
 function ensureData() {
   if (records.length) return true;
-  setStatus("先にExcelファイルを選択してください。", true);
   setSimpleStatus("先にExcelファイルを選択してください。", true);
   return false;
 }
@@ -1733,7 +1448,6 @@ function getRecordsForMode(mode) {
 
   const selected = getSelectedRecords();
   if (!selected.length) {
-    setStatus("印刷するデータを選択してください。", true);
     setSimpleStatus("印刷するデータを選択してください。", true);
     return [];
   }
@@ -1743,14 +1457,8 @@ function getRecordsForMode(mode) {
 
 function openPrintWindow(mode) {
   if (!ensureData()) return;
-  if (els.simpleApp.hidden) {
-    updateSettingsFromForm();
-    bindSimpleSettingsToForm();
-  } else {
-    updateSettingsFromSimpleForm();
-    updateSettingsFromSimplePositionForm();
-    bindSettingsToForm();
-  }
+  updateSettingsFromSimpleForm();
+  updateSettingsFromSimplePositionForm();
   updateCopyModeFromActiveForm();
   updatePrintOrderFromActiveForm();
   if (!validateRequiredPrintField()) return;
@@ -1761,7 +1469,7 @@ function openPrintWindow(mode) {
 
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
-    setStatus("印刷画面を開けません。ポップアップを許可してください。", true);
+    setSimpleStatus("印刷画面を開けません。ポップアップを許可してください。", true);
     return;
   }
 
@@ -1770,7 +1478,6 @@ function openPrintWindow(mode) {
   printWindow.document.close();
   printWindow.focus();
   const copyNote = printableRecords.length === selected.length ? "" : ` ${printableRecords.length}枚分を作成しました。`;
-  setStatus(`印刷画面を開きました。用紙サイズ B6（横）、倍率100%で印刷してください。${copyNote}`);
   setSimpleStatus(`印刷画面を開きました。レジカード用プリンターを選択してから印刷してください。${copyNote}`);
 }
 
@@ -1984,28 +1691,14 @@ function getNameLayout(record) {
   const fontHeightMm = fontSize * PT_TO_MM;
   const lineGap = roundToTenth(Math.max(settings.nameLineGap, fontHeightMm * 1.35));
 
+  const safeGap = 2;
 
-
-
-
-
-
-
-
-
-  const safeGap = 2; // 최소 안전 거리 2mm
-
-  // 방 번호와 성함 사이 거리 확보
   const projectedLastNameY = Number(settings.nameY) + (count - 1) * lineGap;
   const roomTopY = Number(settings.roomY) - (Number(settings.roomFontSize) * PT_TO_MM);
   const shiftUp = Math.max(0, (projectedLastNameY + safeGap) - roomTopY);
   return {
     fontSize,
     lineGap,
-
-
-
-
     firstNameY: Number(settings.nameY) - shiftUp,
     stayInfoY: Number(settings.stayInfoY) - shiftUp,
     cleaningInfoY: Number(settings.cleaningInfoY) - shiftUp,
@@ -2020,14 +1713,11 @@ function getPrintableNames(record) {
 
 function getAutoNameFontSize(names) {
   const baseSize = Number(settings.nameFontSize);
-  const remainingWidth = getPrintFaceRemainingWidth(settings.nameX); // 실제 남은 폭 계산
+  const remainingWidth = getPrintFaceRemainingWidth(settings.nameX);
 
   const longestWidth = names.reduce((max, name) => (
     Math.max(max, estimateTextWidthMm(name, baseSize))
   ), 0);
-
-
-
 
   if (longestWidth <= remainingWidth) return baseSize;
   const fittedSize = baseSize * (remainingWidth / longestWidth);
@@ -2078,11 +1768,6 @@ function printTransform() {
   return settings.rotate180 ? "translateY(-50%) rotate(180deg)" : "translateY(-50%)";
 }
 
-function setStatus(message, isError = false) {
-  els.status.textContent = message;
-  els.status.classList.toggle("error", isError);
-}
-
 function setSimpleStatus(message, isError = false) {
   els.simpleStatus.textContent = message;
   els.simpleStatus.classList.toggle("error", isError);
@@ -2090,9 +1775,9 @@ function setSimpleStatus(message, isError = false) {
 
 function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replace(/&/g, String.fromCharCode(38) + "amp;")
+    .replace(/</g, String.fromCharCode(38) + "lt;")
+    .replace(/>/g, String.fromCharCode(38) + "gt;")
+    .replace(/"/g, String.fromCharCode(38) + "quot;")
+    .replace(/'/g, String.fromCharCode(38) + "#039;");
 }

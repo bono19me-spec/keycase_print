@@ -58,37 +58,14 @@
     </symbol>
   </svg>
   <main class="app-shell">
-    <section id="modeHome" class="mode-home">
-      <div class="panel home-panel">
-        <p class="eyebrow">Key Case Print</p>
-        <h1>キーケース印刷</h1>
-        <p id="homeBuildVersion" class="build-version"></p>
-        <p class="muted">Excelファイルからキーケースを印刷します。初めて使う場合は手順に沿って進める簡単印刷がおすすめです。</p>
-        <div class="mode-grid">
-          <button id="startSimple" type="button" class="mode-card">
-            <svg class="mode-icon">
-              <use href="#icon-check"></use>
-            </svg>
-            <span>簡単印刷</span>
-            <small>アップロードから印刷まで1ページずつ進みます。</small>
-          </button>
-          <button id="startAdvanced" type="button" class="mode-card secondary-mode">
-            <svg class="mode-icon">
-              <use href="#icon-sliders"></use>
-            </svg>
-            <span>高度印刷</span>
-            <small>位置調整や直接入力を含む詳細設定画面を開きます。</small>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section id="simpleApp" class="simple-app" hidden>
+    <section id="simpleApp" class="simple-app">
       <div class="simple-topbar">
-        <button id="simpleBackHome" type="button" class="secondary icon-button"><svg class="button-icon">
-            <use href="#icon-home"></use>
-          </svg>モード選択へ</button>
-        <div class="step-indicator" aria-label="簡単印刷の進行状況">
+        <div class="app-header">
+          <p class="eyebrow">Key Case Print</p>
+          <h1>キーケース印刷</h1>
+          <p id="homeBuildVersion" class="build-version"></p>
+        </div>
+        <div class="step-indicator" aria-label="印刷の進行状況">
           <span class="active" data-step-dot="1"><svg class="step-icon">
               <use href="#icon-upload"></use>
             </svg></span>
@@ -109,11 +86,11 @@
         <h2><svg class="heading-icon">
             <use href="#icon-upload"></use>
           </svg>Excelファイルをアップロード</h2>
-        <p class="muted">HNSから出力した団体予約名前リストExcelファイルを選択してください。ファイルはサーバーに送信されず、このブラウザ内で処理されます。</p>
-        <label class="file-drop" for="simpleExcelFile">
+        <p class="muted">HNSから出力した団体予約名前リストExcelファイルを選択またはドラッグ＆ドロップしてください。ファイルはサーバーに送信されず、このブラウザ内で処理されます。</p>
+        <label class="file-drop" for="simpleExcelFile" id="simpleFileDrop">
           <input id="simpleExcelFile" type="file"
             accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-          <span class="file-drop-title">Excelファイルを選択</span>
+          <span class="file-drop-title">Excelファイルを選択またはドラッグ＆ドロップ</span>
           <span id="simpleFileName" class="muted">.xls / .xlsx 対応、最初のシートを自動選択します。</span>
         </label>
         <details class="secondary-details">
@@ -410,325 +387,12 @@
           </div>
         </details>
 
-        <details class="simple-position-panel">
-          <summary><svg class="button-icon">
-              <use href="#icon-sliders"></use>
-            </svg><span class="summary-copy"><strong>文字サイズを調整</strong><small>必要な場合のみ</small></span></summary>
-          <div class="simple-adjust-grid">
-            <label>氏名サイズ(pt)<input id="simpleNameFontSize" type="number" step="0.5" min="6"></label>
-            <label>部屋番号サイズ(pt)<input id="simpleRoomFontSize" type="number" step="0.5" min="6"></label>
-            <label>団体名サイズ(pt)<input id="simpleGroupNameFontSize" type="number" step="0.5" min="6"></label>
-            <label>宿泊日程サイズ(pt)<input id="simpleStayInfoFontSize" type="number" step="0.5" min="6"></label>
-            <label>清掃日サイズ(pt)<input id="simpleCleaningInfoFontSize" type="number" step="0.5" min="6"></label>
-            <label>部屋変更日サイズ(pt)<input id="simpleRcInfoFontSize" type="number" step="0.5" min="6"></label>
-          </div>
-          <div class="simple-adjust-actions">
-            <button id="simpleResetSettings" type="button" class="secondary icon-button"><svg class="button-icon">
-                <use href="#icon-check"></use>
-              </svg>初期値</button>
-            <button id="simpleSaveSettings" type="button" class="icon-button"><svg class="button-icon">
-                <use href="#icon-check"></use>
-              </svg>設定を保存</button>
-          </div>
-        </details>
         <div class="simple-nav">
           <button id="simplePrevPrint" type="button" class="secondary icon-button"><svg class="button-icon">
               <use href="#icon-arrow-left"></use>
             </svg>戻る</button>
         </div>
       </section>
-    </section>
-
-    <section id="advancedApp" hidden>
-      <div class="advanced-topbar">
-        <button id="advancedBackHome" type="button" class="secondary icon-button"><svg class="button-icon">
-            <use href="#icon-home"></use>
-          </svg>モード選択へ</button>
-      </div>
-      <section class="workspace">
-        <div class="panel upload-panel">
-          <div>
-            <p class="eyebrow">Key Case Print</p>
-            <h1>キーケース印刷</h1>
-            <p id="buildVersion" class="build-version"></p>
-            <p class="muted">団体予約システムのExcelから部屋番号と宿泊者名を読み取り、B6設定でキーケースへ印刷します。</p>
-          </div>
-
-          <label class="file-drop" for="excelFile">
-            <input id="excelFile" type="file"
-              accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-            <span class="file-drop-title">Excelファイルを選択</span>
-            <span id="fileName" class="muted">.xls / .xlsx 対応、最初のシートを自動選択します。</span>
-          </label>
-
-          <details class="secondary-details">
-            <summary>読み込みシートを変更</summary>
-            <label class="sheet-picker">読み込みシート
-              <select id="sheetSelect" disabled>
-                <option value="">Excelファイルを選択してください</option>
-              </select>
-            </label>
-          </details>
-
-          <details class="custom-entry">
-            <summary>別の方法：Excelを使わずに直接入力</summary>
-            <div class="custom-print-options">
-              <div class="option-pair">
-                <label class="checkbox-row option-main"><input id="customPrintName" type="checkbox"
-                    checked><span>氏名</span></label>
-                <label class="checkbox-row sub-option honorific-option"><input id="customPrintNameHonorific"
-                    type="checkbox" checked><span>様</span></label>
-              </div>
-              <label class="checkbox-row option-main"><input id="customPrintRoom" type="checkbox"
-                  checked><span>部屋番号</span></label>
-              <div id="customFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
-            </div>
-            <div class="custom-grid">
-              <label>団体名<input id="customGroupName" type="text" placeholder="任意"></label>
-              <label>宿泊日程<input id="customStayInfo" type="text" placeholder="例: 7/7〜1泊"></label>
-            </div>
-            <label><span id="customEntriesLabel">部屋番号 / 氏名</span>
-              <textarea id="customEntries" rows="5" placeholder="例:
-4082 イノウエ　トモオ/カワハラ　リッカ
-4083 カワカミ　ミコト"></textarea>
-            </label>
-            <button id="loadCustom" type="button" class="secondary icon-button"><svg class="button-icon">
-                <use href="#icon-upload"></use>
-              </svg>直接入力を読み込む</button>
-          </details>
-
-          <div id="status" class="status">このファイルはサーバーに送信されません。ブラウザ内で処理されます。</div>
-
-          <details class="secondary-details notice-details">
-            <summary>印刷時の注意を確認</summary>
-            <div class="notice">
-              <p>印刷時はレジカード印刷用のプリンターのB6用紙をキーケースに変えて利用してください。</p>
-              <p>最初は1枚だけテスト印刷してください。問題なければ10枚または20枚単位で印刷してください。</p>
-            </div>
-          </details>
-        </div>
-
-        <div class="panel controls-panel">
-          <div class="panel-title-row">
-            <div>
-              <p class="eyebrow">Contents</p>
-              <h2><svg class="heading-icon">
-                  <use href="#icon-check"></use>
-                </svg>印刷内容</h2>
-            </div>
-          </div>
-
-          <div class="advanced-content-stack">
-            <section class="core-options" aria-labelledby="advancedBasicInfoTitle">
-              <p id="advancedBasicInfoTitle" class="section-kicker">基本情報</p>
-              <div class="flat-option-row">
-                <div class="option-card-main">
-                  <label class="checkbox-row option-main"><input id="printName" type="checkbox"
-                      checked><span>氏名</span></label>
-                  <label class="checkbox-row sub-option honorific-option"><input id="printNameHonorific" type="checkbox"
-                      checked><span>様</span></label>
-                </div>
-              </div>
-              <div class="flat-option-row">
-                <label class="checkbox-row option-main"><input id="printRoom" type="checkbox"
-                    checked><span>部屋番号</span></label>
-              </div>
-            </section>
-
-            <details id="advancedAdditionalInfo" class="disclosure-panel">
-              <summary>
-                <span class="summary-copy"><strong>追加情報</strong><small>団体名・宿泊情報</small></span>
-                <span id="advancedAdditionalSummary" class="selection-count">未選択</span>
-              </summary>
-              <div class="disclosure-content">
-                <div class="flat-option-row optional-input-row">
-                  <label class="checkbox-row option-main"><input id="printGroupName"
-                      type="checkbox"><span>団体名</span></label>
-                  <div id="advancedGroupNameBody" class="full-row" hidden>
-                    <input id="advancedGroupNameInput" type="text" class="editable-chip-input" placeholder="団体名を入力"
-                      value="">
-                  </div>
-                </div>
-
-                <details id="advancedStayInfoDetails" class="nested-disclosure">
-                  <summary>
-                    <span class="summary-copy"><strong>宿泊情報</strong><small>必要な項目だけ選択</small></span>
-                    <span id="advancedStaySelectionSummary" class="selection-count">未選択</span>
-                  </summary>
-                  <input id="printStayInfo" type="checkbox" hidden aria-hidden="true">
-                  <div id="stayInfoSubPanel" class="flat-sub-options">
-                    <div class="sub-option-card">
-                      <div class="sub-option-header">
-                        <label class="checkbox-row option-main"><input id="printStaySchedule"
-                            type="checkbox"><span>宿泊日程</span></label>
-                        <small id="staySchedulePreview" class="field-example">例: 7/7〜1泊</small>
-                      </div>
-                    </div>
-                    <div class="sub-option-card">
-                      <div class="sub-option-header">
-                        <label class="checkbox-row option-main"><input id="printCleaningInfo"
-                            type="checkbox"><span>清掃日</span></label>
-                        <div class="date-option-actions">
-                          <small id="cleaningInfoPreview" class="field-example"></small>
-                          <button id="openCleaningInfoPicker" type="button" class="secondary inline-setting-button"
-                            hidden>設定</button>
-                        </div>
-                      </div>
-                      <dialog id="cleaningInfoPicker" class="date-picker-modal" hidden>
-                        <div class="modal-heading">
-                          <span class="summary-copy"><strong>清掃日を設定</strong><small>最大6日まで選択できます</small></span>
-                          <button type="button" class="modal-close-button secondary"
-                            data-close-date-picker="cleaningInfoPicker" aria-label="閉じる">×</button>
-                        </div>
-                        <div class="date-picker-toolbar">
-                          <label>月<input id="cleaningInfoMonth" type="month"></label>
-                          <button id="clearCleaningInfoDates" type="button" class="secondary compact-button">消去</button>
-                        </div>
-                        <div id="cleaningInfoCalendar" class="calendar-grid"></div>
-                        <span id="cleaningInfoSelectedDates" class="selected-dates"></span>
-                        <button type="button" class="modal-done-button"
-                          data-close-date-picker="cleaningInfoPicker">完了</button>
-                      </dialog>
-                    </div>
-                    <div class="sub-option-card">
-                      <div class="sub-option-header">
-                        <label class="checkbox-row option-main"><input id="printRcInfo"
-                            type="checkbox"><span>部屋変更日</span></label>
-                        <div class="date-option-actions">
-                          <small id="rcInfoPreview" class="field-example"></small>
-                          <button id="openRcInfoPicker" type="button" class="secondary inline-setting-button"
-                            hidden>設定</button>
-                        </div>
-                      </div>
-                      <dialog id="rcInfoPicker" class="date-picker-modal" hidden>
-                        <div class="modal-heading">
-                          <span class="summary-copy"><strong>部屋変更日を設定</strong><small>1日選択できます</small></span>
-                          <button type="button" class="modal-close-button secondary"
-                            data-close-date-picker="rcInfoPicker" aria-label="閉じる">×</button>
-                        </div>
-                        <div class="date-picker-toolbar">
-                          <label>月<input id="rcInfoMonth" type="month"></label>
-                          <button id="clearRcInfoDates" type="button" class="secondary compact-button">消去</button>
-                        </div>
-                        <div id="rcInfoCalendar" class="calendar-grid"></div>
-                        <span id="rcInfoSelectedDates" class="selected-dates"></span>
-                        <button type="button" class="modal-done-button"
-                          data-close-date-picker="rcInfoPicker">完了</button>
-                      </dialog>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            </details>
-
-            <details class="disclosure-panel font-size-disclosure">
-              <summary>
-                <span class="summary-copy"><strong>文字サイズ設定</strong><small>必要な場合のみ調整</small></span>
-              </summary>
-              <div class="disclosure-content">
-                <div class="control-grid">
-                  <label>氏名サイズ(pt)<input id="nameFontSize" type="number" step="0.5" min="6"></label>
-                  <label>部屋番号サイズ(pt)<input id="roomFontSize" type="number" step="0.5" min="6"></label>
-                  <label>団体名サイズ(pt)<input id="groupNameFontSize" type="number" step="0.5" min="6"></label>
-                  <label>宿泊日程サイズ(pt)<input id="stayInfoFontSize" type="number" step="0.5" min="6"></label>
-                  <label>清掃日サイズ(pt)<input id="cleaningInfoFontSize" type="number" step="0.5" min="6"></label>
-                  <label>部屋変更日サイズ(pt)<input id="rcInfoFontSize" type="number" step="0.5" min="6"></label>
-                </div>
-                <div class="settings-actions">
-                  <button id="resetSettings" class="secondary icon-button" type="button"><svg class="button-icon">
-                      <use href="#icon-check"></use>
-                    </svg>初期値</button>
-                  <button id="saveSettings" type="button" class="icon-button"><svg class="button-icon">
-                      <use href="#icon-check"></use>
-                    </svg>設定を保存</button>
-                </div>
-              </div>
-            </details>
-          </div>
-          <div id="advancedPrintFieldError" class="inline-error" hidden>氏名または部屋番号を少なくとも1つ選択してください。</div>
-        </div>
-
-        <div class="panel actions-panel">
-          <div>
-            <p class="eyebrow">Print</p>
-            <h2><svg class="heading-icon">
-                <use href="#icon-printer"></use>
-              </svg>印刷</h2>
-          </div>
-          <div id="advancedPrintOptionsPanel" class="copy-mode-panel print-copy-options" hidden>
-            <p class="option-group-label">印刷順</p>
-            <label class="radio-row"><input type="radio" name="advancedPrintOrder" value="load" checked>読み込み順</label>
-            <label class="radio-row"><input type="radio" name="advancedPrintOrder" value="room">部屋番号順</label>
-            <div id="advancedCopyModeRow">
-              <p class="option-group-label">印刷枚数</p>
-              <label class="radio-row"><input type="radio" name="advancedCopyMode" value="room"
-                  checked>部屋ごとに1枚印刷</label>
-              <label class="radio-row"><input type="radio" name="advancedCopyMode" value="guest">人数分の枚数を印刷</label>
-              <span id="advancedCopyModeHint" class="muted small"></span>
-            </div>
-          </div>
-
-          <div class="primary-print-actions">
-            <button id="allPrint" type="button" class="icon-button final-print-action"><svg class="button-icon">
-                <use href="#icon-printer"></use>
-              </svg>全件印刷</button>
-            <button id="testPrint" type="button" class="secondary icon-button test-print-action"><svg
-                class="button-icon">
-                <use href="#icon-printer"></use>
-              </svg>1枚テスト印刷</button>
-          </div>
-
-          <details class="disclosure-panel compact-disclosure print-selection-disclosure">
-            <summary>
-              <span class="summary-copy"><strong>選択したデータのみ印刷</strong><small>印刷したい行にチェック</small></span>
-            </summary>
-            <div class="disclosure-content">
-              <div id="advancedPrintSelection" class="print-selection-panel"></div>
-              <button id="rangePrint" type="button" class="secondary icon-button range-action-button"><svg
-                  class="button-icon">
-                  <use href="#icon-printer"></use>
-                </svg>選択したデータを印刷</button>
-            </div>
-          </details>
-
-        </div>
-      </section>
-
-      <details class="panel data-panel">
-        <summary class="data-summary">
-          <span>
-            <p class="eyebrow">Data</p>
-            <h2><svg class="heading-icon">
-                <use href="#icon-file"></use>
-              </svg>データ確認 <span id="countBadge">0名</span></h2>
-          </span>
-          <span id="warningBadge" class="warning-badge"></span>
-        </summary>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><label class="table-select-all"><input id="selectAllRows" type="checkbox">印刷</label></th>
-                <th>番号</th>
-                <th>Excel行</th>
-                <th>部屋番号</th>
-                <th>宿泊者名</th>
-                <th>人数</th>
-                <th>宿泊日程</th>
-                <th>清掃日</th>
-                <th>部屋変更日</th>
-                <th>印刷名</th>
-                <th>状態</th>
-              </tr>
-            </thead>
-            <tbody id="dataTable">
-              <tr>
-                <td colspan="11" class="empty">Excelファイルを選択するとデータが表示されます。</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </details>
     </section>
   </main>
 
@@ -751,8 +415,7 @@
   </dialog>
 
   <script src="vendor/xlsx.full.min.js"></script>
-
-  <script src="app.js?v=20260728-print-order2"></script>
+  <script src="app.js?v=20260804-single-mode"></script>
 </body>
 
 </html>

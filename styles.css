@@ -140,6 +140,25 @@ select {
   margin-bottom: 14px;
 }
 
+.app-header {
+  display: grid;
+  gap: 4px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.app-header .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .simple-topbar {
   display: flex;
   justify-content: space-between;
@@ -1147,6 +1166,19 @@ h2 {
   border-radius: 8px;
   background: #fbfcfd;
   cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-drop:hover {
+  border-color: var(--accent);
+  background: #f0f7f9;
+}
+
+.file-drop.drag-over {
+  border-color: var(--accent);
+  border-width: 2px;
+  background: #e8f3f6;
+  transform: scale(1.01);
 }
 
 .file-drop input {
