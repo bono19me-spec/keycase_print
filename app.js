@@ -44,7 +44,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260804-single-mode";
+const BUILD_VERSION = "20260902-individual-copy";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -148,20 +148,10 @@ function init() {
   document.getElementById("simpleNextPrinter").addEventListener("click", () => showSimpleStep(4));
   document.getElementById("simplePrevPrint").addEventListener("click", () => showSimpleStep(3));
 
-  // 스텝 인디케이터 클릭 이벤트 추가
+  // 스텝 인디케이터 클릭 이벤트 추가 (button 요소로 변경되어 네이티브 키보드 지원)
   document.querySelectorAll(".step-dot").forEach((dot) => {
     const step = Number(dot.dataset.stepTarget);
-    const clickHandler = () => {
-      showSimpleStep(step);
-    };
-    dot.addEventListener("click", clickHandler);
-    // 키보드 접근성 지원 (Enter 또는 Space 키)
-    dot.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        showSimpleStep(step);
-      }
-    });
+    dot.addEventListener("click", () => showSimpleStep(step));
   });
 
   ["simplePrintName", "simplePrintNameHonorific", "simplePrintRoom", "simplePrintGroupName", "simplePrintStayInfo", "simplePrintStaySchedule", "simplePrintCleaningInfo", "simplePrintRcInfo"].forEach((id) => {
@@ -188,15 +178,24 @@ function init() {
       bindCleaningSettingsToForm();
       renderTable();
     });
-    document.getElementById(config.openButtonId).addEventListener("click", () => {
-      openDatePickerModal(config.panelId);
+    document.getElementById(config.openButtonId).addEventListener("click", (e) => {
+      openDatePickerModal(config.panelId, e.currentTarget);
     });
     document.getElementById(config.inputId).addEventListener("change", (event) => {
-      if (event.target.checked) openDatePickerModal(config.panelId);
+      if (event.target.checked) openDatePickerModal(config.panelId, event.target);
     });
   });
   document.querySelectorAll("[data-close-date-picker]").forEach((button) => {
     button.addEventListener("click", () => closeDatePickerModal(button.dataset.closeDatePicker));
+  });
+  // 모달 배경 클릭 시에도 포커스 복원
+  document.querySelectorAll(".date-picker-modal").forEach((dialog) => {
+    dialog.addEventListener("close", () => {
+      if (lastDatePickerTrigger) {
+        lastDatePickerTrigger.focus();
+        lastDatePickerTrigger = null;
+      }
+    });
   });
   document.querySelectorAll(".date-picker-modal").forEach((dialog) => {
     dialog.addEventListener("click", (event) => {
@@ -207,6 +206,7 @@ function init() {
     input.addEventListener("input", () => {
       updateCopyModeFromForm(input.value);
       bindCopyModeToForm();
+      renderTable();
     });
   });
   document.querySelectorAll('input[name="simplePrintOrder"]').forEach((input) => {
@@ -235,6 +235,12 @@ function init() {
   els.simplePrintSelection.addEventListener("click", handlePrintSelectionAction);
   els.simplePrintSelection.addEventListener("click", handleEditButtonClick);
   els.recordEditModal.querySelector("[data-close-record-edit]").addEventListener("click", () => els.recordEditModal.close());
+  els.recordEditModal.addEventListener("close", () => {
+    if (lastRecordEditTrigger) {
+      lastRecordEditTrigger.focus();
+      lastRecordEditTrigger = null;
+    }
+  });
   els.saveRecordEdit.addEventListener("click", saveIndividualRecordEdit);
 
   setupDragAndDrop();
@@ -284,8 +290,10 @@ function showSimpleStep(step) {
   });
   document.querySelectorAll("[data-step-dot]").forEach((dot) => {
     const dotStep = Number(dot.dataset.stepDot);
-    dot.classList.toggle("active", dotStep === step);
+    const isActive = dotStep === step;
+    dot.classList.toggle("active", isActive);
     dot.classList.toggle("done", dotStep < step);
+    dot.setAttribute("aria-selected", isActive);
   });
   if (step === 4) {
     updateCopyModeVisibility();
@@ -359,7 +367,8 @@ function bindSimplePositionSettingsToForm() {
 }
 
 function bindCopyModeToForm() {
-  const mode = settings.printCopyMode === "guest" ? "guest" : "room";
+  const mode = normalizeCopyMode(settings.printCopyMode);
+  settings.printCopyMode = mode;
   document.querySelectorAll('input[name="simpleCopyMode"]').forEach((input) => {
     input.checked = input.value === mode;
   });
@@ -373,7 +382,11 @@ function bindPrintOrderToForm() {
 }
 
 function updateCopyModeFromForm(value) {
-  settings.printCopyMode = value === "guest" ? "guest" : "room";
+  settings.printCopyMode = normalizeCopyMode(value);
+}
+
+function normalizeCopyMode(value) {
+  return ["room", "guest", "individual"].includes(value) ? value : "room";
 }
 
 function updatePrintOrderFromForm(value) {
@@ -404,18 +417,49 @@ function getRecordsInDisplayOrder() {
   return sortRecordsForPrint(records);
 }
 
-function getMultiOccupancySummary() {
-  const multiRooms = records.filter((record) => record.outputNames.length > 1);
-  const extraCards = multiRooms.reduce((sum, record) => sum + record.outputNames.length - 1, 0);
-  return { multiRooms, extraCards };
+function getMultiOccupancyRecords() {
+  return records.filter((record) => record.outputNames.length > 1);
+}
+
+function getPrintPageCount(list, copyMode = settings.printCopyMode) {
+  if (normalizeCopyMode(copyMode) === "room") return list.length;
+  return list.reduce((sum, record) => sum + Math.max(1, record.outputNames.length), 0);
+}
+
+function getSelectionSummaryText(selectedRecords) {
+  return `選択中 ${selectedRecords.length}件 / ${records.length}件・印刷予定 ${getPrintPageCount(selectedRecords)}枚`;
 }
 
 function updateCopyModeVisibility() {
-  const { multiRooms, extraCards } = getMultiOccupancySummary();
+  const multiRooms = getMultiOccupancyRecords();
   const hasRecords = records.length > 0;
   const hasMultiRooms = multiRooms.length > 0;
+
+  const individualInput = document.querySelector('input[name="simpleCopyMode"][value="individual"]');
+  const individualLabel = document.getElementById("simpleIndividualCopyModeLabel");
+  const individualDescription = document.getElementById("simpleIndividualCopyModeDescription");
+  const individualUnavailable = !settings.printName;
+  if (individualInput) individualInput.disabled = individualUnavailable;
+  if (individualLabel) individualLabel.classList.toggle("is-disabled", individualUnavailable);
+  if (individualDescription) {
+    individualDescription.textContent = individualUnavailable
+      ? "「氏名」を選択すると利用できます"
+      : "各ケースに1名の氏名を入れて人数分印刷";
+  }
+  if (individualUnavailable && settings.printCopyMode === "individual") {
+    updateCopyModeFromForm("room");
+    bindCopyModeToForm();
+  }
+
+  const descriptions = {
+    room: "同室者全員の氏名を1枚にまとめます。",
+    guest: "全員の氏名が入った同じ内容を人数分作成します。",
+    individual: "各ケースに1名ずつ氏名を入れて人数分作成します。"
+  };
+  const unit = records.length && records.every((record) => record.room) ? "室" : "件";
+  const pageCount = getPrintPageCount(records);
   const hint = hasMultiRooms
-    ? `2名以上の部屋が${multiRooms.length}室あります。人数分の場合は追加で${extraCards}枚印刷されます。`
+    ? `2名以上の部屋が${multiRooms.length}室あります。${descriptions[settings.printCopyMode]} 全${records.length}${unit}で${pageCount}枚です。`
     : "";
 
   if (els.simplePrintOptionsPanel) els.simplePrintOptionsPanel.hidden = !hasRecords;
@@ -459,7 +503,7 @@ function handlePrintSelectionChange(event) {
     });
 
     const countEl = els.simplePrintSelection.querySelector(".selection-toolbar strong");
-    if (countEl) countEl.textContent = `選択中 ${selectedRecords.length}件 / ${records.length}件`;
+    if (countEl) countEl.textContent = getSelectionSummaryText(selectedRecords);
   }
 }
 
@@ -489,7 +533,7 @@ function updateSettingsFromSimpleForm() {
   settings.printRcInfo = document.getElementById("simplePrintRcInfo").checked;
   syncStayInfoMaster();
   const selected = document.querySelector('input[name="simpleCopyMode"]:checked');
-  if (selected) settings.printCopyMode = selected.value;
+  if (selected) updateCopyModeFromForm(selected.value);
   const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
   if (printOrder) settings.printOrder = printOrder.value;
   updatePrintFieldControls();
@@ -607,15 +651,27 @@ function updateCleaningControls() {
   updatePreviewChips();
 }
 
-function openDatePickerModal(panelId) {
+let lastDatePickerTrigger = null;
+
+function openDatePickerModal(panelId, triggerElement = null) {
   const dialog = document.getElementById(panelId);
   if (!dialog || dialog.hidden || dialog.open) return;
+  if (triggerElement) {
+    lastDatePickerTrigger = triggerElement;
+  }
   dialog.showModal();
 }
 
 function closeDatePickerModal(panelId) {
   const dialog = document.getElementById(panelId);
-  if (dialog?.open) dialog.close();
+  if (dialog?.open) {
+    dialog.close();
+    // 포커스를 트리거 요소로 복원
+    if (lastDatePickerTrigger) {
+      lastDatePickerTrigger.focus();
+      lastDatePickerTrigger = null;
+    }
+  }
 }
 
 function updateAdditionalInformationControls() {
@@ -1054,8 +1110,6 @@ function loadSimpleCustomEntries() {
       rawNames: names,
       outputNames,
       rawName: names.join(" / "),
-      outputName: outputNames.join(" / "),
-      guestCount: outputNames.length,
       groupName: "",
       stayInfo,
       customCleaning: cleaning,
@@ -1247,7 +1301,6 @@ function extractRecords(sheet) {
       currentRecord.rawNames.push(rawName);
       currentRecord.outputNames.push(normalizeGuestName(rawName));
       currentRecord.rawName = currentRecord.rawNames.join(" / ");
-      currentRecord.outputName = currentRecord.outputNames.join(" / ");
       continue;
     }
 
@@ -1268,19 +1321,12 @@ function extractRecords(sheet) {
       rawNames: [rawName],
       outputNames: [normalizeGuestName(rawName)],
       rawName,
-      outputName: normalizeGuestName(rawName),
-      guestCount: 1,
       groupName,
       stayInfo: formatStayInfo(arrivalCell, nights),
       arrivalDate
     };
     valid.push(currentRecord);
   }
-
-  valid.forEach((record, index) => {
-    record.index = index + 1;
-    record.guestCount = record.outputNames.length;
-  });
 
   return { valid, warnings: rowWarnings };
 }
@@ -1364,6 +1410,7 @@ function getRecordsSummary(list) {
 }
 
 let editingRecordIndex = null;
+let lastRecordEditTrigger = null;
 
 function handleEditButtonClick(event) {
   const button = event.target.closest("[data-edit-index]");
@@ -1374,6 +1421,7 @@ function handleEditButtonClick(event) {
   if (!record) return;
 
   editingRecordIndex = index;
+  lastRecordEditTrigger = button;
 
   const fields = [
     { id: "editRecRoom", active: settings.printRoom },
@@ -1420,7 +1468,6 @@ function saveIndividualRecordEdit() {
     const namesText = document.getElementById("editRecNames").value.trim();
     record.outputNames = namesText.split("/").map((n) => n.trim()).filter(Boolean);
     record.rawName = record.outputNames.join(" / ");
-    record.outputName = record.rawName;
   }
   if (!document.getElementById("editRecGroupName").disabled) record.groupName = document.getElementById("editRecGroupName").value.trim();
   if (!document.getElementById("editRecStayInfo").disabled) record.stayInfo = document.getElementById("editRecStayInfo").value.trim();
@@ -1444,8 +1491,8 @@ function getRcInfo(record) {
 }
 
 function renderTable() {
-  updatePrintSelectionPanels();
   updateCopyModeVisibility();
+  updatePrintSelectionPanels();
   updateCleaningControls();
 }
 
@@ -1479,7 +1526,7 @@ function buildPrintSelectionPanelHtml(selectedRecords) {
 
   return `
     <div class="selection-toolbar">
-      <strong>選択中 ${selectedRecords.length}件 / ${records.length}件</strong>
+      <strong>${getSelectionSummaryText(selectedRecords)}</strong>
       <span class="selection-actions">
         <button type="button" class="text-button" data-selection-action="all">全て選択</button>
         <button type="button" class="text-button" data-selection-action="none">全て解除</button>
@@ -1540,12 +1587,20 @@ function openPrintWindow(mode) {
 }
 
 function getPrintableRecords(selected, mode) {
-  if (mode === "test" || settings.printCopyMode !== "guest") return selected;
-
-  return selected.flatMap((record) => {
-    const copyCount = Math.max(1, record.outputNames.length);
-    return Array.from({ length: copyCount }, () => record);
+  const copyMode = normalizeCopyMode(settings.printCopyMode);
+  const printableRecords = selected.flatMap((record) => {
+    if (copyMode === "room") return [record];
+    if (!record.outputNames.length) return [record];
+    if (copyMode === "individual") {
+      return record.outputNames.map((name) => ({
+        ...record,
+        outputNames: [name]
+      }));
+    }
+    return record.outputNames.map(() => record);
   });
+
+  return mode === "test" ? printableRecords.slice(0, 1) : printableRecords;
 }
 
 function buildPrintHtml(selected) {

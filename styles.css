@@ -10,6 +10,32 @@
   --accent-strong: #0f526b;
   --warn: #b35b00;
   --soft: #eef5f7;
+
+  /* Button design tokens */
+  --btn-height-sm: 32px;
+  --btn-height-md: 40px;
+  --btn-height-lg: 48px;
+  --btn-radius: 6px;
+  --btn-font-weight: 800;
+  --btn-gap: 8px;
+  --btn-padding-x: 14px;
+  --btn-padding-y-sm: 6px;
+  --btn-padding-y-md: 9px;
+  --btn-padding-y-lg: 11px;
+
+  /* Input design tokens */
+  --input-height: 38px;
+  --input-radius: 6px;
+  --input-border: 1px solid #c6ced8;
+  --input-border-focus: var(--accent);
+  --input-bg: #fff;
+  --input-color: var(--ink);
+  --input-padding-x: 10px;
+  --input-padding-y: 8px;
+
+  /* Checkbox design tokens */
+  --checkbox-size: 18px;
+  --checkbox-accent: var(--accent);
 }
 
 * {
@@ -90,7 +116,7 @@ select {
   gap: 8px;
 }
 
-.step-indicator span {
+.step-indicator button {
   width: 42px;
   height: 42px;
   display: grid;
@@ -102,18 +128,24 @@ select {
   font-weight: 900;
   cursor: pointer;
   transition: all 0.15s ease;
+  padding: 0;
 }
 
-.step-indicator span:hover {
+.step-indicator button:hover {
   background: var(--soft);
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.step-indicator span.active:hover {
+.step-indicator button.active:hover {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+.step-indicator button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .step-icon,
@@ -143,16 +175,22 @@ select {
   height: 18px;
 }
 
-.step-indicator span.active {
+.step-indicator button.active {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
 }
 
-.step-indicator span.done {
+.step-indicator button.done {
   border-color: #7aa6b6;
   background: var(--soft);
   color: var(--accent-strong);
+}
+
+.step-indicator button[aria-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .simple-step {
@@ -657,7 +695,6 @@ select {
 }
 
 .print-copy-options {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -675,6 +712,11 @@ select {
   color: var(--accent-strong);
 }
 
+.print-copy-options .radio-row.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .print-copy-options .small {
   grid-column: 1 / -1;
 }
@@ -690,11 +732,33 @@ select {
 .copy-mode-panel #simpleCopyModeRow {
   grid-column: 1 / -1;
   display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.copy-mode-panel .print-order-row {
+  grid-column: 1 / -1;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 4px;
-  padding-top: 8px;
+  padding-top: 12px;
   border-top: 1px dashed #b9d4de;
+}
+
+.radio-option-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.radio-option-copy strong {
+  font-size: 14px;
+}
+
+.radio-option-copy small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .radio-row {
@@ -845,6 +909,11 @@ h2 {
 .file-drop:hover {
   border-color: var(--accent);
   background: #f0f7f9;
+}
+
+.file-drop:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .file-drop.drag-over {
@@ -1034,25 +1103,33 @@ label {
 input,
 select {
   width: 100%;
-  min-height: 38px;
-  border: 1px solid #c6ced8;
-  border-radius: 6px;
-  background: #fff;
-  color: var(--ink);
-  padding: 8px 10px;
+  min-height: var(--input-height);
+  border: var(--input-border);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
+  color: var(--input-color);
+  padding: var(--input-padding-y) var(--input-padding-x);
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--input-border-focus);
+  box-shadow: 0 0 0 3px rgba(23, 107, 135, 0.15);
 }
 
 .checkbox-row {
-  grid-template-columns: 18px 1fr;
+  grid-template-columns: var(--checkbox-size) 1fr;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
+  min-height: var(--input-height);
   padding-top: 22px;
 }
 
 .checkbox-row input {
-  width: 18px;
-  min-height: 18px;
+  width: var(--checkbox-size);
+  min-height: var(--checkbox-size);
+  accent-color: var(--checkbox-accent);
 }
 
 .checkbox-row.is-disabled {
@@ -1064,14 +1141,14 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
+  gap: var(--btn-gap);
+  min-height: var(--btn-height-md);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   background: var(--accent);
   color: #fff;
-  padding: 9px 14px;
-  font-weight: 800;
+  padding: var(--btn-padding-y-md) var(--btn-padding-x);
+  font-weight: var(--btn-font-weight);
   cursor: pointer;
 }
 
@@ -1097,7 +1174,20 @@ button.secondary {
 }
 
 button.secondary:hover {
-  background: var(--soft);
+  background: var(--step-soft, var(--soft));
+}
+
+/* Button size variants */
+button.btn-sm {
+  min-height: var(--btn-height-sm);
+  padding: var(--btn-padding-y-sm) var(--btn-padding-x);
+  font-size: 13px;
+}
+
+button.btn-lg {
+  min-height: var(--btn-height-lg);
+  padding: var(--btn-padding-y-lg) var(--btn-padding-x);
+  font-size: 16px;
 }
 
 .primary-print-actions {
@@ -1108,7 +1198,7 @@ button.secondary:hover {
 
 .test-print-action,
 .final-print-action {
-  min-height: 48px;
+  min-height: var(--btn-height-lg);
   font-size: 16px;
 }
 
@@ -1147,6 +1237,8 @@ button.secondary:hover {
   box-shadow: 0 2px 4px rgba(93, 90, 156, 0.2);
   justify-self: end;
   margin-top: 2px;
+  min-height: var(--btn-height-lg);
+  padding: var(--btn-padding-y-lg) var(--btn-padding-x);
 }
 
 .range-action-button:hover {
@@ -1319,7 +1411,7 @@ button.secondary:hover {
     grid-template-columns: 1fr;
   }
 
-  .print-copy-options {
+  .copy-mode-panel .print-order-row {
     grid-template-columns: 1fr;
   }
 
