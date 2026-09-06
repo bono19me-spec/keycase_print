@@ -220,17 +220,24 @@
                       </div>
                       <dialog id="simpleCleaningInfoPicker" class="date-picker-modal" hidden>
                         <div class="modal-heading">
-                          <span class="summary-copy"><strong>清掃日を設定</strong><small>最大6日まで選択できます</small></span>
+                          <span class="summary-copy"><strong>清掃日を設定</strong><small>自動設定は3日ごと・最大4回。手動で最大6日まで変更できます</small></span>
                           <button type="button" class="modal-close-button secondary"
                             data-close-date-picker="simpleCleaningInfoPicker" aria-label="閉じる">×</button>
                         </div>
-                        <div class="date-picker-toolbar">
-                          <label>月<input id="simpleCleaningInfoMonth" type="month"></label>
-                          <button id="simpleClearCleaningInfoDates" type="button"
-                            class="secondary compact-button">消去</button>
+                        <button id="simpleResetAllCleaningDates" type="button" class="secondary compact-button" hidden>全グループを基本設定に戻す</button>
+                        <div id="simpleCleaningInfoPickerGroups" class="date-group-list" hidden></div>
+                        <div id="simpleCleaningInfoPickerEditor">
+                          <button id="simpleCleaningInfoPickerBack" type="button" class="secondary compact-button" hidden>‹ チェックイン別の設定に戻る</button>
+                          <div class="date-picker-toolbar">
+                            <label>月<input id="simpleCleaningInfoMonth" type="month"></label>
+                            <button id="simpleClearCleaningInfoDates" type="button"
+                              class="secondary compact-button">消去</button>
+                          </div>
+                            <button id="simpleResetCleaningDates" type="button" class="secondary compact-button">このグループを3日ごとに戻す</button>
+                          <p id="simpleCleaningInfoPickerReference" class="date-group-reference"></p>
+                          <div id="simpleCleaningInfoCalendar" class="calendar-grid"></div>
+                          <span id="simpleCleaningInfoSelectedDates" class="selected-dates"></span>
                         </div>
-                        <div id="simpleCleaningInfoCalendar" class="calendar-grid"></div>
-                        <span id="simpleCleaningInfoSelectedDates" class="selected-dates"></span>
                         <button type="button" class="modal-done-button"
                           data-close-date-picker="simpleCleaningInfoPicker">完了</button>
                       </dialog>
@@ -254,12 +261,17 @@
                           <button type="button" class="modal-close-button secondary"
                             data-close-date-picker="simpleRcInfoPicker" aria-label="閉じる">×</button>
                         </div>
-                        <div class="date-picker-toolbar">
-                          <label>月<input id="simpleRcInfoMonth" type="month"></label>
-                          <button id="simpleClearRcInfoDates" type="button" class="secondary compact-button">消去</button>
+                        <div id="simpleRcInfoPickerGroups" class="date-group-list" hidden></div>
+                        <div id="simpleRcInfoPickerEditor">
+                          <button id="simpleRcInfoPickerBack" type="button" class="secondary compact-button" hidden>‹ チェックイン別の設定に戻る</button>
+                          <div class="date-picker-toolbar">
+                            <label>月<input id="simpleRcInfoMonth" type="month"></label>
+                            <button id="simpleClearRcInfoDates" type="button" class="secondary compact-button">消去</button>
+                          </div>
+                          <p id="simpleRcInfoPickerReference" class="date-group-reference"></p>
+                          <div id="simpleRcInfoCalendar" class="calendar-grid"></div>
+                          <span id="simpleRcInfoSelectedDates" class="selected-dates"></span>
                         </div>
-                        <div id="simpleRcInfoCalendar" class="calendar-grid"></div>
-                        <span id="simpleRcInfoSelectedDates" class="selected-dates"></span>
                         <button type="button" class="modal-done-button"
                           data-close-date-picker="simpleRcInfoPicker">完了</button>
                       </dialog>

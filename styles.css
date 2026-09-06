@@ -1469,3 +1469,26 @@ button.btn-lg {
     justify-self: stretch;
   }
 }
+
+.date-group-list {
+  display: grid;
+  gap: 8px;
+}
+.date-group-list[hidden],
+.date-picker-modal [hidden] {
+  display: none;
+}
+.date-group-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+.date-group-button span,
+.date-group-reference {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

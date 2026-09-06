@@ -30,9 +30,7 @@ const DEFAULT_SETTINGS = {
   printStayInfo: false,
   printStaySchedule: false,
   printCleaningInfo: false,
-  cleaningInfoCustomText: "",
   printRcInfo: false,
-  rcInfoCustomText: "",
   printCopyMode: "room",
   printOrder: "load",
   globalOffsetX: 0,
@@ -62,6 +60,8 @@ const FONT_SIZE_KEYS = [
 
 let settings = loadSettings();
 let records = [];
+let dateGroupOverrides = {};
+let activeDateGroups = {};
 let warnings = [];
 let currentWorkbook = null;
 let simpleStep = 1;
@@ -174,7 +174,7 @@ function init() {
   getDatePickerConfigs().forEach((config) => {
     document.getElementById(config.monthId).addEventListener("input", () => renderDatePicker(config));
     document.getElementById(config.clearButtonId).addEventListener("click", () => {
-      settings[config.textKey] = "";
+      setGroupDates(config, []);
       bindCleaningSettingsToForm();
       renderTable();
     });
@@ -183,6 +183,24 @@ function init() {
     });
     document.getElementById(config.inputId).addEventListener("change", (event) => {
       if (event.target.checked) openDatePickerModal(config.panelId, event.target);
+    });
+  });
+  document.getElementById("simpleResetAllCleaningDates").addEventListener("click", () => {
+    delete dateGroupOverrides.cleaningInfoCustomText;
+    bindCleaningSettingsToForm();
+    renderTable();
+  });
+  document.getElementById("simpleResetCleaningDates").addEventListener("click", () => {
+    const config = getDatePickerConfigs()[0];
+    const group = getActiveDateGroup(config);
+    delete (dateGroupOverrides[config.textKey] || {})[group.key];
+    bindCleaningSettingsToForm();
+    renderTable();
+  });
+  getDatePickerConfigs().forEach((config) => {
+    document.getElementById(`${config.panelId}Back`).addEventListener("click", () => {
+      activeDateGroups[config.textKey] = null;
+      updateCleaningControls();
     });
   });
   document.querySelectorAll("[data-close-date-picker]").forEach((button) => {
@@ -633,12 +651,17 @@ function updateCleaningControls() {
       openButton.hidden = !enabled;
       openButton.disabled = !enabled;
     }
-    if (selectedEl) selectedEl.textContent = formatSelectedDates(settings[config.textKey]);
+    const pickerText = getPickerDateText(config);
+    if (selectedEl) selectedEl.textContent = formatSelectedDates(pickerText);
+    renderDateGroups(config);
 
     if (previewEl) {
-      const dates = parseDateInfoDates(settings[config.textKey]);
+      const dates = parseDateInfoDates(getPickerDateText(config));
       const prefix = config.label === "清掃" ? "清掃日：" : "部屋変更：";
-      if (enabled && dates.length) {
+      if (enabled && getDateGroups().length > 1) {
+        previewEl.textContent = `チェックイン別 ${getDateGroups().length}グループ`;
+        previewEl.classList.add("has-value");
+      } else if (enabled && dates.length) {
         previewEl.textContent = `${prefix}${dates.join(", ")}`;
         previewEl.classList.add("has-value");
       } else {
@@ -656,6 +679,13 @@ let lastDatePickerTrigger = null;
 function openDatePickerModal(panelId, triggerElement = null) {
   const dialog = document.getElementById(panelId);
   if (!dialog || dialog.hidden || dialog.open) return;
+  const config = getDatePickerConfigs().find((item) => item.panelId === panelId);
+  if (config) {
+    const groups = getDateGroups();
+    activeDateGroups[config.textKey] = groups.length === 1 ? groups[0].key : null;
+    setDateGroupMonth(config);
+    bindCleaningSettingsToForm();
+  }
   if (triggerElement) {
     lastDatePickerTrigger = triggerElement;
   }
@@ -720,7 +750,7 @@ function updateLivePrintPreview(firstRecord) {
   setLivePreviewLine(
     els.simpleLiveCleaning,
     settings.printStayInfo && settings.printCleaningInfo,
-    (firstRecord && getCleaningInfo(firstRecord)) || settings.cleaningInfoCustomText || "清掃日：未設定"
+    firstRecord ? getCleaningInfo(firstRecord) : "清掃日：データ読込後に自動設定"
   );
   positionLivePreviewLine(
     els.simpleLiveCleaning,
@@ -731,7 +761,7 @@ function updateLivePrintPreview(firstRecord) {
   setLivePreviewLine(
     els.simpleLiveRc,
     settings.printStayInfo && settings.printRcInfo,
-    (firstRecord && getRcInfo(firstRecord)) || settings.rcInfoCustomText || "部屋変更：未設定"
+    (firstRecord && getRcInfo(firstRecord)) || "部屋変更：未設定"
   );
   positionLivePreviewLine(
     els.simpleLiveRc,
@@ -828,7 +858,7 @@ function renderDatePicker(config) {
   const [year, month] = monthValue.split("-").map(Number);
   if (!year || !month) return;
 
-  const selected = new Set(parseDateInfoDates(settings[config.textKey]));
+  const selected = new Set(parseDateInfoDates(getPickerDateText(config)));
   const firstDay = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const cells = ["日", "月", "火", "水", "木", "金", "土"].map((day) => `<span class="calendar-weekday">${day}</span>`);
@@ -854,7 +884,7 @@ function renderDatePicker(config) {
 }
 
 function toggleSavedDate(config, dateText) {
-  const dates = new Set(parseDateInfoDates(settings[config.textKey]));
+  const dates = new Set(parseDateInfoDates(getPickerDateText(config)));
   if (dates.has(dateText)) {
     dates.delete(dateText);
   } else {
@@ -865,9 +895,7 @@ function toggleSavedDate(config, dateText) {
     }
     dates.add(dateText);
   }
-  const sortedDates = sortMonthDayDates([...dates]);
-  const prefix = config.label === "清掃" ? "清掃日：" : "部屋変更：";
-  settings[config.textKey] = sortedDates.length ? `${prefix}${sortedDates.join("、")}` : "";
+  setGroupDates(config, [...dates]);
 }
 
 function parseDateInfoDates(text) {
@@ -1119,6 +1147,7 @@ function loadSimpleCustomEntries() {
   });
 
   records = valid;
+  resetDateGroups();
   warnings = rowWarnings;
   currentWorkbook = null;
   populateSheetSelect(null);
@@ -1188,9 +1217,7 @@ function pickSettings(source) {
     return picked;
   }, {
     printCopyMode: source.printCopyMode,
-    printOrder: source.printOrder === "room" ? "room" : "load",
-    cleaningInfoCustomText: source.cleaningInfoCustomText,
-    rcInfoCustomText: source.rcInfoCustomText
+    printOrder: source.printOrder === "room" ? "room" : "load"
   });
 }
 
@@ -1243,6 +1270,7 @@ function parseSelectedSheet() {
 
     const parsed = extractRecords(sheet);
     records = parsed.valid;
+    resetDateGroups();
     warnings = parsed.warnings;
 
     if (!records.length) {
@@ -1470,24 +1498,158 @@ function saveIndividualRecordEdit() {
     record.rawName = record.outputNames.join(" / ");
   }
   if (!document.getElementById("editRecGroupName").disabled) record.groupName = document.getElementById("editRecGroupName").value.trim();
-  if (!document.getElementById("editRecStayInfo").disabled) record.stayInfo = document.getElementById("editRecStayInfo").value.trim();
-  if (!document.getElementById("editRecCleaning").disabled) record.customCleaning = document.getElementById("editRecCleaning").value.trim();
+  const originalCleaning = record.customCleaning || getCleaningInfo(record) || "";
+  if (!document.getElementById("editRecStayInfo").disabled) {
+    const stayInfo = document.getElementById("editRecStayInfo").value.trim();
+    if (stayInfo !== record.stayInfo) record.arrivalDate = parseMonthDayDate(stayInfo);
+    record.stayInfo = stayInfo;
+  }
+  if (!document.getElementById("editRecCleaning").disabled) {
+    const cleaning = document.getElementById("editRecCleaning").value.trim();
+    if (cleaning !== originalCleaning) record.customCleaning = cleaning;
+  }
   if (!document.getElementById("editRecRc").disabled) record.customRc = document.getElementById("editRecRc").value.trim();
 
   renderTable();
   els.recordEditModal.close();
 }
 
+function resetDateGroups() {
+  dateGroupOverrides = {};
+  activeDateGroups = {};
+}
+
+function getDateGroupKey(record) {
+  const date = record.arrivalDate || parseMonthDayDate(record.stayInfo);
+  return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` : "unknown";
+}
+
+function getDateGroups() {
+  const groups = new Map();
+  records.forEach((record) => {
+    const key = getDateGroupKey(record);
+    if (!groups.has(key)) groups.set(key, {
+      key, arrival: record.arrivalDate || parseMonthDayDate(record.stayInfo), count: 0
+    });
+    groups.get(key).count += 1;
+  });
+  return groups.size ? [...groups.values()].sort((a, b) => a.key.localeCompare(b.key))
+    : [{ key: "unknown", arrival: null, count: 0 }];
+}
+
+function getActiveDateGroup(config) {
+  const groups = getDateGroups();
+  return groups.find((group) => group.key === activeDateGroups[config.textKey]) || groups[0];
+}
+
+function getGroupDateText(config, group) {
+  const dates = dateGroupOverrides[config.textKey]?.[group.key];
+  if (dates !== undefined) {
+    const prefix = config.label === "清掃" ? "清掃日：" : "部屋変更：";
+    return dates.length ? `${prefix}${dates.join("、")}` : "";
+  }
+  if (config.label !== "清掃" || !group.arrival) return "";
+  return formatCleaningDates([3, 6, 9, 12].map((offset) => {
+    const date = addCleaningDays(group.arrival, offset);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }));
+}
+
+function setGroupDates(config, dates) {
+  const group = getActiveDateGroup(config);
+  dateGroupOverrides[config.textKey] ||= {};
+  dateGroupOverrides[config.textKey][group.key] = group.arrival
+    ? [...dates].sort((a, b) => cleaningDateOffset(a, group.arrival) - cleaningDateOffset(b, group.arrival))
+    : sortMonthDayDates(dates);
+}
+
+function setDateGroupMonth(config) {
+  const group = getActiveDateGroup(config);
+  const date = addCleaningDays(group.arrival || new Date(), config.label === "清掃" ? 0 : 15);
+  document.getElementById(config.monthId).value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function renderDateGroups(config) {
+  const groups = getDateGroups();
+  const active = groups.find((group) => group.key === activeDateGroups[config.textKey]);
+  const showList = groups.length > 1 && !active;
+  const list = document.getElementById(`${config.panelId}Groups`);
+  list.hidden = !showList;
+  if (config.label === "清掃") {
+    document.getElementById("simpleResetAllCleaningDates").hidden = !showList;
+  }
+  document.getElementById(`${config.panelId}Editor`).hidden = showList;
+  document.getElementById(`${config.panelId}Back`).hidden = groups.length < 2;
+  list.innerHTML = groups.map((group) => {
+    const label = group.arrival ? `${group.arrival.getFullYear()}/${group.arrival.getMonth() + 1}/${group.arrival.getDate()} チェックイン` : "チェックイン日未設定";
+    const manual = dateGroupOverrides[config.textKey]?.[group.key] !== undefined;
+    const state = manual ? "手動" : config.label === "清掃" && group.arrival ? "自動" : "未設定";
+    return `<button type="button" class="secondary date-group-button" data-group="${group.key}"><strong>${label}（${group.count}件） · ${state}</strong><span>${escapeHtml(getGroupDateText(config, group) || "日付未選択")} ›</span></button>`;
+  }).join("");
+  list.querySelectorAll("[data-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeDateGroups[config.textKey] = button.dataset.group;
+      setDateGroupMonth(config);
+      bindCleaningSettingsToForm();
+    });
+  });
+  const group = getActiveDateGroup(config);
+  const label = group.arrival ? `${group.arrival.getFullYear()}/${group.arrival.getMonth() + 1}/${group.arrival.getDate()} チェックイン` : "チェックイン日未設定";
+  document.getElementById(`${config.panelId}Reference`).textContent = `${label}：選択した日付はこのグループだけに適用します。${config.label === "清掃" ? "チェックアウト日以降は印刷しません。" : ""}`;
+}
+
+function addCleaningDays(date, days) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+function cleaningDateOffset(text, arrival) {
+  const [month, day] = text.split("/").map(Number);
+  const nextYear = month < arrival.getMonth() + 1
+    || (month === arrival.getMonth() + 1 && day < arrival.getDate());
+  const date = new Date(arrival.getFullYear() + Number(nextYear), month - 1, day);
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) return NaN;
+  return (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    - Date.UTC(arrival.getFullYear(), arrival.getMonth(), arrival.getDate())) / 86400000;
+}
+
+function formatCleaningDates(dates) {
+  return dates.length ? `清掃日：${dates.join("、")}` : "";
+}
+
+function getPickerDateText(config) {
+  return getGroupDateText(config, getActiveDateGroup(config));
+}
+
 function getCleaningInfo(record) {
   if (!settings.printStayInfo || !settings.printCleaningInfo) return "";
-  if (record.customCleaning !== undefined && record.customCleaning !== "") return record.customCleaning;
-  return settings.cleaningInfoCustomText.trim();
+  const arrival = record.arrivalDate || parseMonthDayDate(record.stayInfo);
+  const nightsMatch = String(record.stayInfo || "").match(/(\d+)\s*泊/);
+  const nights = nightsMatch ? Number(nightsMatch[1]) : null;
+  const groupDates = dateGroupOverrides.cleaningInfoCustomText?.[getDateGroupKey(record)];
+  const customText = record.customCleaning || (groupDates ? formatCleaningDates(groupDates) : "");
+  let offsets;
+  if (customText) {
+    const dates = parseDateInfoDates(customText);
+    // Retain free-form notes; date entries are filtered using this room's stay.
+    if (!dates.length || !arrival) return customText.trim();
+    offsets = dates.map((date) => cleaningDateOffset(date, arrival));
+  } else {
+    if (!arrival) return "";
+    offsets = groupDates !== undefined ? [] : [3, 6, 9, 12];
+  }
+  const dates = [...new Set(offsets)].filter((offset) => Number.isFinite(offset)
+    && offset > 0 && (nights === null || offset < nights))
+    .sort((a, b) => a - b).map((offset) => {
+      const date = addCleaningDays(arrival, offset);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    });
+  return formatCleaningDates(dates);
 }
 
 function getRcInfo(record) {
   if (!settings.printStayInfo || !settings.printRcInfo) return "";
   if (record.customRc !== undefined && record.customRc !== "") return record.customRc;
-  return settings.rcInfoCustomText.trim();
+  return getGroupDateText(getDatePickerConfigs()[1], { key: getDateGroupKey(record) });
 }
 
 function renderTable() {
