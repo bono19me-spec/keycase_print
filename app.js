@@ -42,7 +42,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260902-individual-copy";
+const BUILD_VERSION = "20260907-room-only-print";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const NAME_AREA_WIDTH_MM = 58;
@@ -725,7 +725,7 @@ function updateLivePrintPreview(firstRecord) {
   const record = firstRecord || {};
   const previewRecord = {
     ...record,
-    outputNames: record.outputNames?.length ? record.outputNames : ["山田 太郎"]
+    outputNames: firstRecord ? (record.outputNames || []) : ["山田 太郎"]
   };
   const printableNames = previewRecord.outputNames.map(formatGuestNameForPrint);
   const nameLayout = getNameLayout(previewRecord);
@@ -1284,7 +1284,10 @@ function parseSelectedSheet() {
     renderTable();
     document.getElementById("simpleNextUpload").disabled = false;
     const summary = getRecordsSummary(records);
-    setSimpleStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warnings.length ? `除外・警告 ${warnings.length}件があります。` : ""}`);
+    const warningSummary = warnings.length
+      ? `警告 ${warnings.length}件：${[...new Set(warnings.map((warning) => warning.reason))].join("／")}`
+      : "";
+    setSimpleStatus(`「${sheetName}」から ${summary}のデータを読み込みました。${warningSummary}`);
   } catch (error) {
     records = [];
     warnings = [];
@@ -1315,16 +1318,6 @@ function extractRecords(sheet) {
 
     if (!room && !rawName) continue;
 
-    if (room && !rawName) {
-      rowWarnings.push({
-        excelRow: row + 1,
-        room,
-        rawName,
-        reason: "宿泊者名が空です"
-      });
-      continue;
-    }
-
     if (!room && rawName && currentRecord) {
       currentRecord.rawNames.push(rawName);
       currentRecord.outputNames.push(normalizeGuestName(rawName));
@@ -1346,8 +1339,8 @@ function extractRecords(sheet) {
       index: valid.length + 1,
       excelRow: row + 1,
       room,
-      rawNames: [rawName],
-      outputNames: [normalizeGuestName(rawName)],
+      rawNames: rawName ? [rawName] : [],
+      outputNames: rawName ? [normalizeGuestName(rawName)] : [],
       rawName,
       groupName,
       stayInfo: formatStayInfo(arrivalCell, nights),
@@ -1355,6 +1348,15 @@ function extractRecords(sheet) {
     };
     valid.push(currentRecord);
   }
+
+  valid.filter((record) => !record.outputNames.length).forEach((record) => {
+    rowWarnings.push({
+      excelRow: record.excelRow,
+      room: record.room,
+      rawName: "",
+      reason: "宿泊者名が空の部屋は、氏名を印刷せず部屋番号のみ印刷します。"
+    });
+  });
 
   return { valid, warnings: rowWarnings };
 }
