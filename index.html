@@ -365,6 +365,17 @@
           </svg>印刷</h2>
         <p class="muted">印刷画面で「レジカード用プリンター」を選択してから印刷してください。</p>
         <div id="simplePrintOptionsPanel" class="copy-mode-panel print-copy-options" hidden>
+          <div class="print-paper-row">
+            <p class="option-group-label">プリンターの用紙設定</p>
+            <label class="radio-row">
+              <input type="radio" name="simplePrintPaperSize" value="b6" checked>
+              <span class="radio-option-copy"><strong>B6（横）</strong><small>通常はこちらを使用</small></span>
+            </label>
+            <label class="radio-row">
+              <input type="radio" name="simplePrintPaperSize" value="a4">
+              <span class="radio-option-copy"><strong>A4（横）</strong><small>B6を選べないパソコン用。倍率100%で印刷</small></span>
+            </label>
+          </div>
           <div id="simpleCopyModeRow">
             <p class="option-group-label">2名以上の部屋の印刷方法</p>
             <label class="radio-row">

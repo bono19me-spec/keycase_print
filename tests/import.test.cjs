@@ -44,6 +44,24 @@ test('room-only Excel rows remain printable without a name or honorific in every
   }
 });
 
+test('print paper mode keeps B6 unchanged and centers it horizontally on A4 landscape', () => {
+  const { run } = setup([['701', '山田 太郎']]);
+  assert.equal(run('getPrintPageConfig().widthMm'), 182);
+  assert.equal(run('getPrintPageConfig().heightMm'), 128);
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
+  assert.equal(run('getPrintPageConfig().canvasOffsetYMm'), 0);
+
+  run("settings.printPaperSize = 'a4';");
+  assert.equal(run('getPrintPageConfig().widthMm'), 297);
+  assert.equal(run('getPrintPageConfig().heightMm'), 210);
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 57.5);
+  assert.equal(run('getPrintPageConfig().canvasOffsetYMm'), 0);
+  const html = run('buildPrintHtml(getPrintableRecords(parsed.valid, "all"))');
+  assert.match(html, /size: 297mm 210mm/);
+  assert.match(html, /left: 57.5mm/);
+  assert.match(html, /用紙 A4（横）/);
+});
+
 test('continuation names attach to the latest room even when its first name cell is empty', () => {
   const { run } = setup([['701', '山田 太郎'], ['702', ''], ['', '山田 花子']]);
   assert.equal(run('parsed.valid.length'), 2);

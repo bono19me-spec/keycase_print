@@ -736,6 +736,16 @@ select {
   gap: 8px;
 }
 
+.copy-mode-panel .print-paper-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #b9d4de;
+}
+
 .copy-mode-panel .print-order-row {
   grid-column: 1 / -1;
   display: grid;

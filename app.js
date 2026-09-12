@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
   printRcInfo: false,
   printCopyMode: "room",
   printOrder: "load",
+  printPaperSize: "b6",
   globalOffsetX: 0,
   globalOffsetY: 0,
   dataStartRow: 13,
@@ -42,9 +43,11 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260907-room-only-print";
+const BUILD_VERSION = "20260912-a4-print-option";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
+const A4_WIDTH_MM = 297;
+const A4_HEIGHT_MM = 210;
 const NAME_AREA_WIDTH_MM = 58;
 const MIN_WRAPPED_TEXT_WIDTH_MM = 1;
 const MIN_NAME_FONT_SIZE_PT = 6.5;
@@ -234,6 +237,13 @@ function init() {
       updatePrintSelectionPanels();
     });
   });
+  document.querySelectorAll('input[name="simplePrintPaperSize"]').forEach((input) => {
+    input.addEventListener("input", () => {
+      settings.printPaperSize = normalizePrintPaperSize(input.value);
+      bindPrintPaperSizeToForm();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
+    });
+  });
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
@@ -360,6 +370,7 @@ function bindSimpleSettingsToForm() {
   }
   bindCopyModeToForm();
   bindPrintOrderToForm();
+  bindPrintPaperSizeToForm();
   updatePrintFieldControls();
   bindCleaningSettingsToForm();
 }
@@ -399,12 +410,24 @@ function bindPrintOrderToForm() {
   });
 }
 
+function bindPrintPaperSizeToForm() {
+  const paperSize = normalizePrintPaperSize(settings.printPaperSize);
+  settings.printPaperSize = paperSize;
+  document.querySelectorAll('input[name="simplePrintPaperSize"]').forEach((input) => {
+    input.checked = input.value === paperSize;
+  });
+}
+
 function updateCopyModeFromForm(value) {
   settings.printCopyMode = normalizeCopyMode(value);
 }
 
 function normalizeCopyMode(value) {
   return ["room", "guest", "individual"].includes(value) ? value : "room";
+}
+
+function normalizePrintPaperSize(value) {
+  return value === "a4" ? "a4" : "b6";
 }
 
 function updatePrintOrderFromForm(value) {
@@ -554,6 +577,8 @@ function updateSettingsFromSimpleForm() {
   if (selected) updateCopyModeFromForm(selected.value);
   const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
   if (printOrder) settings.printOrder = printOrder.value;
+  const printPaperSize = document.querySelector('input[name="simplePrintPaperSize"]:checked');
+  if (printPaperSize) settings.printPaperSize = normalizePrintPaperSize(printPaperSize.value);
   updatePrintFieldControls();
   updateCleaningControls();
 }
@@ -1217,7 +1242,8 @@ function pickSettings(source) {
     return picked;
   }, {
     printCopyMode: source.printCopyMode,
-    printOrder: source.printOrder === "room" ? "room" : "load"
+    printOrder: source.printOrder === "room" ? "room" : "load",
+    printPaperSize: normalizePrintPaperSize(source.printPaperSize)
   });
 }
 
@@ -1769,6 +1795,7 @@ function getPrintableRecords(selected, mode) {
 
 function buildPrintHtml(selected) {
   const pages = selected.map((record) => buildPrintPage(record)).join("");
+  const pageConfig = getPrintPageConfig();
   return `<!doctype html>
 <html lang="ja">
 <head>
@@ -1776,7 +1803,7 @@ function buildPrintHtml(selected) {
   <title>キーカバー印刷</title>
   <style>
     @page {
-      size: ${B6_WIDTH_MM}mm ${B6_HEIGHT_MM}mm;
+      size: ${pageConfig.widthMm}mm ${pageConfig.heightMm}mm;
       margin: 0;
     }
     * {
@@ -1816,12 +1843,19 @@ function buildPrintHtml(selected) {
     }
     .page {
       position: relative;
-      width: ${B6_WIDTH_MM}mm;
-      height: ${B6_HEIGHT_MM}mm;
+      width: ${pageConfig.widthMm}mm;
+      height: ${pageConfig.heightMm}mm;
       overflow: hidden;
       page-break-after: always;
       break-after: page;
       background: #fff;
+    }
+    .print-canvas {
+      position: absolute;
+      left: ${pageConfig.canvasOffsetXMm}mm;
+      top: ${pageConfig.canvasOffsetYMm}mm;
+      width: ${B6_WIDTH_MM}mm;
+      height: ${B6_HEIGHT_MM}mm;
     }
     .guide {
       position: absolute;
@@ -1904,7 +1938,8 @@ function buildPrintHtml(selected) {
         display: none;
       }
       body {
-        width: ${B6_WIDTH_MM}mm;
+        width: ${pageConfig.widthMm}mm;
+        height: ${pageConfig.heightMm}mm;
       }
       .page {
         margin: 0;
@@ -1919,7 +1954,7 @@ function buildPrintHtml(selected) {
 <body>
   <div class="toolbar">
     <button type="button" onclick="window.print()">印刷</button>
-    <span>レジカード用プリンターを選択 / 用紙 B6（横） / 倍率100%</span>
+    <span>レジカード用プリンターを選択 / 用紙 ${pageConfig.label} / 倍率100%</span>
   </div>
   ${pages}
 </body>
@@ -1951,14 +1986,36 @@ function buildPrintPage(record) {
     : "";
 
   return `<section class="page">
-    <div class="guide"></div>
-    ${groupName}
-    ${stayInfo}
-    ${cleaningInfo}
-    ${rcInfo}
-    ${names}
-    ${room}
+    <div class="print-canvas">
+      <div class="guide"></div>
+      ${groupName}
+      ${stayInfo}
+      ${cleaningInfo}
+      ${rcInfo}
+      ${names}
+      ${room}
+    </div>
   </section>`;
+}
+
+function getPrintPageConfig() {
+  if (normalizePrintPaperSize(settings.printPaperSize) === "a4") {
+    return {
+      widthMm: A4_WIDTH_MM,
+      heightMm: A4_HEIGHT_MM,
+      canvasOffsetXMm: (A4_WIDTH_MM - B6_WIDTH_MM) / 2,
+      canvasOffsetYMm: 0,
+      label: "A4（横）"
+    };
+  }
+
+  return {
+    widthMm: B6_WIDTH_MM,
+    heightMm: B6_HEIGHT_MM,
+    canvasOffsetXMm: 0,
+    canvasOffsetYMm: 0,
+    label: "B6（横）"
+  };
 }
 
 function getNameLayout(record) {
