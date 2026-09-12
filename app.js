@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   printCopyMode: "room",
   printOrder: "load",
   printPaperSize: "b6",
+  correctionXMm: 0,
   globalOffsetX: 0,
   globalOffsetY: 0,
   dataStartRow: 13,
@@ -43,11 +44,9 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260912-paper-menu-close";
+const BUILD_VERSION = "20260912-b6-correction";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
-const A4_WIDTH_MM = 297;
-const A4_HEIGHT_MM = 210;
 const NAME_AREA_WIDTH_MM = 58;
 const MIN_WRAPPED_TEXT_WIDTH_MM = 1;
 const MIN_NAME_FONT_SIZE_PT = 6.5;
@@ -250,6 +249,13 @@ function init() {
       disclosure.open = false;
     }
   });
+  document.querySelectorAll('[data-paper-shift]').forEach((button) => {
+    button.addEventListener('click', () => {
+      settings.correctionXMm = normalizeCorrectionX(settings.correctionXMm + Number(button.dataset.paperShift));
+      bindPrintPaperSizeToForm();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
+    });
+  });
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
@@ -423,7 +429,10 @@ function bindPrintPaperSizeToForm() {
     input.checked = input.value === paperSize;
   });
   const summary = document.getElementById("printPaperSummary");
-  if (summary) summary.textContent = `用紙：${paperSize === "a4" ? "A4" : "B6"}（横）`;
+  if (summary) summary.textContent = paperSize === "corrected" ? "B6：位置補正" : "用紙：B6（横）";
+  settings.correctionXMm = normalizeCorrectionX(settings.correctionXMm);
+  document.getElementById('paperCorrectionControls').hidden = paperSize !== 'corrected';
+  document.getElementById('paperCorrectionValue').textContent = `右へ ${settings.correctionXMm} mm`;
 }
 
 function updateCopyModeFromForm(value) {
@@ -435,7 +444,11 @@ function normalizeCopyMode(value) {
 }
 
 function normalizePrintPaperSize(value) {
-  return value === "a4" ? "a4" : "b6";
+  return value === "corrected" ? "corrected" : "b6";
+}
+
+function normalizeCorrectionX(value) {
+  return Math.max(0, Math.min(25, Number(value) || 0));
 }
 
 function updatePrintOrderFromForm(value) {
@@ -1251,7 +1264,8 @@ function pickSettings(source) {
   }, {
     printCopyMode: source.printCopyMode,
     printOrder: source.printOrder === "room" ? "room" : "load",
-    printPaperSize: normalizePrintPaperSize(source.printPaperSize)
+    printPaperSize: normalizePrintPaperSize(source.printPaperSize),
+    correctionXMm: normalizeCorrectionX(source.correctionXMm)
   });
 }
 
@@ -2007,20 +2021,12 @@ function buildPrintPage(record) {
 }
 
 function getPrintPageConfig() {
-  if (normalizePrintPaperSize(settings.printPaperSize) === "a4") {
-    return {
-      widthMm: A4_WIDTH_MM,
-      heightMm: A4_HEIGHT_MM,
-      canvasOffsetXMm: (A4_WIDTH_MM - B6_WIDTH_MM) / 2,
-      canvasOffsetYMm: 0,
-      label: "A4（横）"
-    };
-  }
+  const corrected = normalizePrintPaperSize(settings.printPaperSize) === 'corrected';
 
   return {
     widthMm: B6_WIDTH_MM,
     heightMm: B6_HEIGHT_MM,
-    canvasOffsetXMm: 0,
+    canvasOffsetXMm: corrected ? normalizeCorrectionX(settings.correctionXMm) : 0,
     canvasOffsetYMm: 0,
     label: "B6（横）"
   };

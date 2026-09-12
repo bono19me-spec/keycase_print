@@ -44,7 +44,7 @@ test('room-only Excel rows remain printable without a name or honorific in every
   }
 });
 
-test('print paper mode keeps B6 unchanged and centers it horizontally on A4 landscape', () => {
+test('correction preserves B6 size and never affects normal mode', () => {
   const { run } = setup([['701', '山田 太郎']]);
   assert.equal(run('getPrintPageConfig().widthMm'), 182);
   assert.equal(run('getPrintPageConfig().heightMm'), 128);
@@ -52,14 +52,21 @@ test('print paper mode keeps B6 unchanged and centers it horizontally on A4 land
   assert.equal(run('getPrintPageConfig().canvasOffsetYMm'), 0);
 
   run("settings.printPaperSize = 'a4';");
-  assert.equal(run('getPrintPageConfig().widthMm'), 297);
-  assert.equal(run('getPrintPageConfig().heightMm'), 210);
-  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 57.5);
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
+  run("settings.printPaperSize = 'corrected'; settings.correctionXMm = 10;");
+  assert.equal(run('getPrintPageConfig().widthMm'), 182);
+  assert.equal(run('getPrintPageConfig().heightMm'), 128);
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 10);
   assert.equal(run('getPrintPageConfig().canvasOffsetYMm'), 0);
   const html = run('buildPrintHtml(getPrintableRecords(parsed.valid, "all"))');
-  assert.match(html, /size: 297mm 210mm/);
-  assert.match(html, /left: 57.5mm/);
-  assert.match(html, /用紙 A4（横）/);
+  assert.match(html, /size: 182mm 128mm/);
+  assert.match(html, /left: 10mm/);
+  assert.match(html, /用紙 B6（横）/);
+  assert.equal(run('normalizeCorrectionX(100)'), 25);
+  assert.equal(run('normalizeCorrectionX(-10)'), 0);
+  assert.equal(run('pickSettings(settings).correctionXMm'), 10);
+  run("settings.printPaperSize = 'b6';");
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
 });
 
 test('continuation names attach to the latest room even when its first name cell is empty', () => {
