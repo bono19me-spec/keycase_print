@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260912-paper-menu";
+const BUILD_VERSION = "20260912-paper-menu-close";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const A4_WIDTH_MM = 297;
@@ -243,6 +243,12 @@ function init() {
       bindPrintPaperSizeToForm();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
     });
+  });
+  document.addEventListener("click", (event) => {
+    const disclosure = document.getElementById("printPaperDisclosure");
+    if (disclosure?.open && !disclosure.contains(event.target)) {
+      disclosure.open = false;
+    }
   });
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
