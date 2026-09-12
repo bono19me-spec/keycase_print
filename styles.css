@@ -736,14 +736,53 @@ select {
   gap: 8px;
 }
 
-.copy-mode-panel .print-paper-row {
-  grid-column: 1 / -1;
+.print-step-header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.print-step-header h2 {
+  margin: 0;
+}
+
+.print-paper-menu {
+  position: relative;
+  z-index: 5;
+}
+
+.print-paper-menu > summary {
+  min-width: 138px;
+  padding: 8px 12px;
+  border: 1px solid #b9d4de;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.print-paper-menu[open] > summary {
+  border-color: var(--accent);
+  background: #edf6f8;
+}
+
+.print-paper-menu-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(310px, calc(100vw - 52px));
   gap: 8px;
-  margin-bottom: 4px;
-  padding-bottom: 12px;
-  border-bottom: 1px dashed #b9d4de;
+  padding: 10px;
+  border: 1px solid #b9d4de;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
 }
 
 .copy-mode-panel .print-order-row {
@@ -1423,6 +1462,10 @@ button.btn-lg {
 
   .copy-mode-panel .print-order-row {
     grid-template-columns: 1fr;
+  }
+
+  .print-step-header {
+    align-items: center;
   }
 
   .selection-row {

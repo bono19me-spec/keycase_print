@@ -360,22 +360,26 @@
 
       <section class="panel simple-step" data-simple-step="4" hidden>
         <p class="eyebrow">Step 4</p>
-        <h2><svg class="heading-icon">
-            <use href="#icon-file"></use>
-          </svg>印刷</h2>
+        <div class="print-step-header">
+          <h2><svg class="heading-icon">
+              <use href="#icon-file"></use>
+            </svg>印刷</h2>
+          <details id="printPaperDisclosure" class="print-paper-menu print-copy-options">
+            <summary><span id="printPaperSummary">用紙：B6（横）</span></summary>
+            <div class="print-paper-menu-options">
+              <label class="radio-row">
+                <input type="radio" name="simplePrintPaperSize" value="b6" checked>
+                <span class="radio-option-copy"><strong>B6（横）</strong><small>通常はこちらを使用</small></span>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="simplePrintPaperSize" value="a4">
+                <span class="radio-option-copy"><strong>A4（横）</strong><small>B6を選べないパソコン用。倍率100%</small></span>
+              </label>
+            </div>
+          </details>
+        </div>
         <p class="muted">印刷画面で「レジカード用プリンター」を選択してから印刷してください。</p>
         <div id="simplePrintOptionsPanel" class="copy-mode-panel print-copy-options" hidden>
-          <div class="print-paper-row">
-            <p class="option-group-label">プリンターの用紙設定</p>
-            <label class="radio-row">
-              <input type="radio" name="simplePrintPaperSize" value="b6" checked>
-              <span class="radio-option-copy"><strong>B6（横）</strong><small>通常はこちらを使用</small></span>
-            </label>
-            <label class="radio-row">
-              <input type="radio" name="simplePrintPaperSize" value="a4">
-              <span class="radio-option-copy"><strong>A4（横）</strong><small>B6を選べないパソコン用。倍率100%で印刷</small></span>
-            </label>
-          </div>
           <div id="simpleCopyModeRow">
             <p class="option-group-label">2名以上の部屋の印刷方法</p>
             <label class="radio-row">
@@ -452,7 +456,7 @@
   </dialog>
 
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="app.js?v=20260907-room-only-print"></script>
+  <script src="app.js?v=20260912-paper-menu"></script>
 </body>
 
 </html>

@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS = {
 
 const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
-const BUILD_VERSION = "20260912-a4-print-option";
+const BUILD_VERSION = "20260912-paper-menu";
 const B6_WIDTH_MM = 182;
 const B6_HEIGHT_MM = 128;
 const A4_WIDTH_MM = 297;
@@ -416,6 +416,8 @@ function bindPrintPaperSizeToForm() {
   document.querySelectorAll('input[name="simplePrintPaperSize"]').forEach((input) => {
     input.checked = input.value === paperSize;
   });
+  const summary = document.getElementById("printPaperSummary");
+  if (summary) summary.textContent = `用紙：${paperSize === "a4" ? "A4" : "B6"}（横）`;
 }
 
 function updateCopyModeFromForm(value) {
