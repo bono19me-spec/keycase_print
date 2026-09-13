@@ -785,6 +785,20 @@ select {
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
 }
 
+.correction-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row.correction-toggle {
+  padding-top: 0;
+}
+
+.correction-input-row input {
+  min-width: 0;
+}
+
 .copy-mode-panel .print-order-row {
   grid-column: 1 / -1;
   display: grid;
@@ -883,6 +897,10 @@ select {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.settings-session-note {
   padding: 0 14px 14px;
 }
 

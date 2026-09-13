@@ -32,9 +32,9 @@ const DEFAULT_SETTINGS = {
   printCleaningInfo: false,
   printRcInfo: false,
   printCopyMode: "room",
-  printOrder: "load",
+  printOrder: "room",
   printPaperSize: "b6",
-  correctionXMm: 0,
+  correctionXMm: 50,
   globalOffsetX: 0,
   globalOffsetY: 0,
   dataStartRow: 13,
@@ -42,7 +42,6 @@ const DEFAULT_SETTINGS = {
   nameColumn: "X"
 };
 
-const STORAGE_KEY = "keycoverPrintSettings.v2.b6";
 const SHEET_NAME = "団体メンバ一覧表";
 const BUILD_VERSION = "20260912-b6-correction";
 const B6_WIDTH_MM = 182;
@@ -60,7 +59,7 @@ const FONT_SIZE_KEYS = [
   "rcInfoFontSize"
 ];
 
-let settings = loadSettings();
+let settings = { ...DEFAULT_SETTINGS };
 let records = [];
 let dateGroupOverrides = {};
 let activeDateGroups = {};
@@ -102,23 +101,6 @@ const els = {
   recordEditModal: document.getElementById("recordEditModal"),
   saveRecordEdit: document.getElementById("saveRecordEdit")
 };
-
-const settingInputs = [
-  "nameFontSize",
-  "roomFontSize",
-  "groupNameFontSize",
-  "stayInfoFontSize",
-  "cleaningInfoFontSize",
-  "rcInfoFontSize",
-  "printName",
-  "printNameHonorific",
-  "printRoom",
-  "printGroupName",
-  "printStayInfo",
-  "printStaySchedule",
-  "printCleaningInfo",
-  "printRcInfo"
-];
 
 const simplePositionInputMap = {
   simpleNameFontSize: "nameFontSize",
@@ -236,12 +218,23 @@ function init() {
       updatePrintSelectionPanels();
     });
   });
-  document.querySelectorAll('input[name="simplePrintPaperSize"]').forEach((input) => {
-    input.addEventListener("input", () => {
-      settings.printPaperSize = normalizePrintPaperSize(input.value);
-      bindPrintPaperSizeToForm();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-    });
+  const correctionInput = document.getElementById("paperCorrectionInput");
+  document.getElementById("paperCorrectionEnabled").addEventListener("change", (event) => {
+    settings.printPaperSize = event.target.checked ? "corrected" : "b6";
+    settings.correctionXMm = DEFAULT_SETTINGS.correctionXMm;
+    bindPrintPaperSizeToForm();
+  });
+  correctionInput.addEventListener("input", () => {
+    if (correctionInput.value !== "" && correctionInput.validity.valid) {
+      settings.correctionXMm = normalizeCorrectionX(correctionInput.value);
+      updateCorrectionSummary();
+    }
+  });
+  correctionInput.addEventListener("change", () => {
+    bindPrintPaperSizeToForm();
+  });
+  correctionInput.addEventListener("blur", () => {
+    bindPrintPaperSizeToForm();
   });
   document.addEventListener("click", (event) => {
     const disclosure = document.getElementById("printPaperDisclosure");
@@ -249,20 +242,13 @@ function init() {
       disclosure.open = false;
     }
   });
-  document.querySelectorAll('[data-paper-shift]').forEach((button) => {
-    button.addEventListener('click', () => {
-      settings.correctionXMm = normalizeCorrectionX(settings.correctionXMm + Number(button.dataset.paperShift));
-      bindPrintPaperSizeToForm();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-    });
-  });
   Object.keys(simplePositionInputMap).forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
       updateSettingsFromSimplePositionForm();
       updatePreviewChips();
     });
   });
-  document.getElementById("simpleSaveSettings").addEventListener("click", saveSimpleSettings);
+  document.getElementById("simpleApplySettings").addEventListener("click", applySimpleSettings);
   document.getElementById("simpleResetSettings").addEventListener("click", resetSimpleSettings);
 
   els.simpleExcelFile.addEventListener("change", handleFile);
@@ -341,29 +327,6 @@ function showSimpleStep(step) {
   }
 }
 
-function loadSettings() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    const migrated = { ...DEFAULT_SETTINGS, ...(saved || {}) };
-    if (saved && typeof saved.printStaySchedule !== "boolean") {
-      migrated.printStaySchedule = Boolean(saved.printStayInfo);
-    }
-    [
-      "globalOffsetX",
-      "globalOffsetY",
-      "nameX",
-      "nameY",
-      "roomX",
-      "roomY"
-    ].forEach((key) => {
-      migrated[key] = DEFAULT_SETTINGS[key];
-    });
-    return migrated;
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
-}
-
 function bindSimpleSettingsToForm() {
   syncStayInfoMaster();
   document.getElementById("simplePrintName").checked = Boolean(settings.printName);
@@ -423,16 +386,21 @@ function bindPrintOrderToForm() {
 }
 
 function bindPrintPaperSizeToForm() {
-  const paperSize = normalizePrintPaperSize(settings.printPaperSize);
-  settings.printPaperSize = paperSize;
-  document.querySelectorAll('input[name="simplePrintPaperSize"]').forEach((input) => {
-    input.checked = input.value === paperSize;
-  });
+  settings.printPaperSize = normalizePrintPaperSize(settings.printPaperSize);
+  const enabled = settings.printPaperSize === "corrected";
+  settings.correctionXMm = enabled
+    ? normalizeCorrectionX(settings.correctionXMm) : DEFAULT_SETTINGS.correctionXMm;
+  document.getElementById("paperCorrectionEnabled").checked = enabled;
+  const input = document.getElementById("paperCorrectionInput");
+  input.value = settings.correctionXMm;
+  input.disabled = !enabled;
+  updateCorrectionSummary();
+}
+
+function updateCorrectionSummary() {
   const summary = document.getElementById("printPaperSummary");
-  if (summary) summary.textContent = paperSize === "corrected" ? "B6：位置補正" : "用紙：B6（横）";
-  settings.correctionXMm = normalizeCorrectionX(settings.correctionXMm);
-  document.getElementById('paperCorrectionControls').hidden = paperSize !== 'corrected';
-  document.getElementById('paperCorrectionValue').textContent = `右へ ${settings.correctionXMm} mm`;
+  if (summary) summary.textContent = settings.printPaperSize === "corrected"
+    ? `位置補正：${settings.correctionXMm} mm` : "位置補正";
 }
 
 function updateCopyModeFromForm(value) {
@@ -448,7 +416,7 @@ function normalizePrintPaperSize(value) {
 }
 
 function normalizeCorrectionX(value) {
-  return Math.max(0, Math.min(25, Number(value) || 0));
+  return Math.max(0, Math.min(50, Number(value) || 0));
 }
 
 function updatePrintOrderFromForm(value) {
@@ -598,8 +566,6 @@ function updateSettingsFromSimpleForm() {
   if (selected) updateCopyModeFromForm(selected.value);
   const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
   if (printOrder) settings.printOrder = printOrder.value;
-  const printPaperSize = document.querySelector('input[name="simplePrintPaperSize"]:checked');
-  if (printPaperSize) settings.printPaperSize = normalizePrintPaperSize(printPaperSize.value);
   updatePrintFieldControls();
   updateCleaningControls();
 }
@@ -1233,13 +1199,13 @@ function validateRequiredPrintField() {
   return false;
 }
 
-function saveSimpleSettings() {
+function applySimpleSettings() {
   updateSettingsFromSimpleForm();
   const printOrder = document.querySelector('input[name="simplePrintOrder"]:checked');
   if (printOrder) updatePrintOrderFromForm(printOrder.value);
   updateSettingsFromSimplePositionForm();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
-  setSimpleStatus("文字サイズをブラウザに保存しました。");
+  updatePreviewChips();
+  setSimpleStatus("文字サイズを適用しました。再読み込みすると初期値に戻ります。");
 }
 
 function resetSimpleSettings() {
@@ -1247,25 +1213,12 @@ function resetSimpleSettings() {
   bindSimpleSettingsToForm();
   bindSimplePositionSettingsToForm();
   updatePreviewChips();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pickSettings(settings)));
   setSimpleStatus("文字サイズを初期値に戻しました。");
 }
 
 function resetFontSizesToDefault() {
   FONT_SIZE_KEYS.forEach((key) => {
     settings[key] = DEFAULT_SETTINGS[key];
-  });
-}
-
-function pickSettings(source) {
-  return settingInputs.reduce((picked, key) => {
-    picked[key] = source[key];
-    return picked;
-  }, {
-    printCopyMode: source.printCopyMode,
-    printOrder: source.printOrder === "room" ? "room" : "load",
-    printPaperSize: normalizePrintPaperSize(source.printPaperSize),
-    correctionXMm: normalizeCorrectionX(source.correctionXMm)
   });
 }
 

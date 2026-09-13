@@ -51,6 +51,8 @@ test('correction preserves B6 size and never affects normal mode', () => {
   assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
   assert.equal(run('getPrintPageConfig().canvasOffsetYMm'), 0);
 
+  run("settings.printPaperSize = 'corrected';");
+  assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 50);
   run("settings.printPaperSize = 'a4';");
   assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
   run("settings.printPaperSize = 'corrected'; settings.correctionXMm = 10;");
@@ -62,9 +64,8 @@ test('correction preserves B6 size and never affects normal mode', () => {
   assert.match(html, /size: 182mm 128mm/);
   assert.match(html, /left: 10mm/);
   assert.match(html, /用紙 B6（横）/);
-  assert.equal(run('normalizeCorrectionX(100)'), 25);
+  assert.equal(run('normalizeCorrectionX(100)'), 50);
   assert.equal(run('normalizeCorrectionX(-10)'), 0);
-  assert.equal(run('pickSettings(settings).correctionXMm'), 10);
   run("settings.printPaperSize = 'b6';");
   assert.equal(run('getPrintPageConfig().canvasOffsetXMm'), 0);
 });
